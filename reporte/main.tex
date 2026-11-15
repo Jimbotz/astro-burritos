@@ -116,6 +116,29 @@
 \pagenumbering{roman}
 \pagestyle{plain}
 
+\chapter*{Executive Summary}
+\addcontentsline{toc}{chapter}{Executive Summary}
+
+\newcommand{\summaryq}[1]{\par\vspace{4pt}\noindent{\large\bfseries\color{electricBlue}#1}\par\vspace{2pt}\noindent\ignorespaces}
+
+{\small
+\summaryq{What did we develop?}
+We developed \EarthScope{} (\url{https://earthscope-chi.vercel.app}), a free web application that finds long-term climate trends in NASA data for almost any place on Earth and shows the statistical evidence behind each one. A user picks a country or state on a 3D globe, a period and one of 13 climate variables, and presses \emph{Analyze}. The server requests the NASA POWER API (MERRA-2) live, with no accounts or keys, and returns a plain-language headline, the annual series, the trend per decade with its 95\% interval, an autocorrelation-corrected Mann--Kendall test, five pre-declared robustness checks and the minimum detectable trend. A map of native grid cells, two cross-checks (GPM IMERG as a second NASA rain record, and a second place), an exploratory projection and an evidence file that links to the exact NASA request complete each result (Chapters~\ref{cap:solution} and~\ref{cap:how}).
+
+\summaryq{How does it address the challenge?}
+\enquote{Be an Earth System Trend Detective!} asks what is changing, where, how much, and whether the change is significant. \EarthScope{} answers each question with NASA data:
+\begin{itemize}[leftmargin=*, itemsep=0pt, parsep=0pt, topsep=2pt]
+    \item \textbf{What:} 13 processed variables (temperatures and their extremes, warm days and nights, rain, humidity and soil wetness), chosen after an audit that excluded 17 others.
+    \item \textbf{Where:} any country or state, down to native \ang{0.5} $\times$ \ang{0.625} cells, never presented as a city's value.
+    \item \textbf{How much:} a rate per decade with its 95\% interval, plus the smallest trend the data could detect.
+    \item \textbf{Is it significant:} a Mann--Kendall test with the Hamed--Rao correction for autocorrelation, Benjamini--Hochberg control across variables and map cells, and five robustness checks. The words \enquote{increase} or \enquote{decrease} appear only when the evidence supports them.
+\end{itemize}
+For example, mean air temperature in Puebla, Mexico, rose \SI{+0.45}{\celsius}\perdecade{} over 2001--2024 (95\% interval \num{+0.23} to \num{+0.70}; $p = 0.009$) and passes all five checks. In Tlaxcala, two NASA rain records disagree, so no rain claim is made (Chapter~\ref{cap:solution}).
+
+\summaryq{Why is it important?}
+Climate change is communicated with global numbers, but decisions are local: which crops to plant, how to size water storage, when to expect heat stress. In regions with few weather stations, NASA's satellite and reanalysis records are often the only long, consistent source. Yet they are hard to use correctly, and careless statistics produce confident claims that do not hold up. \EarthScope{} makes these data usable by students, teachers, local planners and researchers without overstating what they show: every number can be traced to NASA, and \enquote{no trend detected} is never presented as \enquote{no change}. This protects public trust in climate science and teaches users to separate signal from noise (Chapter~\ref{cap:relevance}).
+\par}
+
 \chapter*{High-Level Summary}
 \addcontentsline{toc}{chapter}{High-Level Summary}
 

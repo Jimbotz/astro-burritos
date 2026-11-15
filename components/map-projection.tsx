@@ -152,6 +152,7 @@ export function ProjectionPanel({ variable, data, active, isLoading, on, onToggl
     {diagnostics && (diagnostics.curvature || diagnostics.variance) && <p>
       Shape checks on the regional series ({diagnostics.years} years): curvature {pText(diagnostics.curvature?.pValue)} · scatter {diagnostics.variance && diagnostics.variance.trend > 0 ? 'growing' : 'shrinking'} over time {pText(diagnostics.variance?.pValue)}. Curvature, or growing scatter, below p {rule.diagnosticAlpha} adds a warning.
     </p>}
+    <p>Results describe the NASA POWER grid cell (0.5° × 0.625°) that contains the marked point, not a state average. Boundaries: Natural Earth (public domain).</p>
     <p>One OLS line per native cell over its complete years ({summary?.fitYears[0] ?? startYear}–{lastYear}); hover a cell for its value and 95% prediction interval. {rule.rationale.en}</p>
     </details>
   </div>

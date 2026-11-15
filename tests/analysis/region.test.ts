@@ -54,15 +54,19 @@ describe('grid and tiles', () => {
     expect(expandForCells({ minLat: 19, maxLat: 20, minLon: -98, maxLon: -97 })).toEqual({ minLat: 18.75, maxLat: 20.25, minLon: -98.3125, maxLon: -96.6875 })
   })
 
-  it('counts only the cell centres inside the polygon, not its whole box', () => {
+  it('counts the cells that touch the polygon, not its whole box', () => {
     const box = { minLat: 0, maxLat: 5, minLon: 0, maxLon: 5 }
-    // A square just around the box holds every centre of the box.
+    // A square just around the box touches every cell of the box.
     expect(countCellsInside(square(-0.1, -0.1, 5.1, 5.1), box)).toBe(estimateCells(box))
-    // A diagonal triangle over the same box holds about half of them (a long diagonal state's case).
+    // A diagonal triangle over the same box touches about half of them plus the diagonal band (a long state's case).
     const triangle: PolygonGeometry = { type: 'Polygon', coordinates: [[[-0.1, -0.1], [5.1, -0.1], [-0.1, 5.1], [-0.1, -0.1]]] }
-    const inside = countCellsInside(triangle, box)
-    expect(inside).toBeGreaterThan(estimateCells(box) * 0.4)
-    expect(inside).toBeLessThan(estimateCells(box) * 0.65)
+    const touching = countCellsInside(triangle, box)
+    expect(touching).toBeGreaterThan(estimateCells(box) * 0.45)
+    expect(touching).toBeLessThan(estimateCells(box) * 0.8)
+    // A strip narrower than a cell that crosses a cell edge but holds no centre (lon 0.25–0.45, centres at 0 and 0.625)
+    // still counts the cells it covers; centres alone gave 0.
+    const strip = square(0.25, 0.1, 0.45, 4.9)
+    expect(countCellsInside(strip, expandForCells(geometryBBox(strip)))).toBeGreaterThan(0)
   })
 })
 

@@ -166,7 +166,6 @@ export function AreaMap({ region, startYear, endYear, variable, kind, active }: 
         unavailable={needsState ? 'Choose a state to fit and project its cells.' : tooLarge ? 'This state is too large for the map grid: choose a smaller one.' : cancelled ? 'Grid request cancelled: press Analyze region again to fit the lines.' : undefined}
       />
       <div className="globe-caption"><span className="legend-item"><span className="legend-point" /> ANALYSIS POINT</span><span className="globe-location"><MapPin size={16} /> {coords}</span></div>
-      <p className="field-hint">Results describe the NASA POWER grid cell (0.5° × 0.625°) that contains the marked point, not a state average. Boundaries: Natural Earth (public domain).</p>
     </> : <div className="chart-empty" role="status">
       <div className="chart-empty-icon"><MapIcon size={16} /></div>
       <strong>{region.country ? 'Loading boundaries…' : 'No country at this point'}</strong>

@@ -13,7 +13,7 @@ export function ResultHeadline({ place, variable, point, isLoading, error, analy
   if (!analysisRequested) return null
   if (isLoading) return <p className="result-headline is-pending" role="status"><LoaderCircle className="loading-icon" size={18} aria-hidden="true" /> Analyzing {place}…</p>
   if (error || !result || !point) return null
-  const headline = headlineFor(place, result, point)
+  const headline = headlineFor(place, result)
   const Icon = headline.tone === 'up' ? TrendingUp : headline.tone === 'down' ? TrendingDown : Minus
 
   async function copyLink() {
@@ -28,7 +28,7 @@ export function ResultHeadline({ place, variable, point, isLoading, error, analy
 
   return <section className={`result-headline is-${headline.tone}`} aria-label="Answer in one sentence">
     <Icon size={22} className="result-headline-icon" aria-hidden="true" />
-    <div className="result-headline-body"><p className="result-headline-text">{headline.text}</p><p className="result-headline-detail">{headline.detail}</p></div>
+    <div className="result-headline-body"><p className="result-headline-text">{headline.text}</p></div>
     <button className="share-button" type="button" onClick={copyLink} aria-live="polite">{copied ? <><Check size={16} /> Copied</> : <><Link2 size={16} /> Copy link</>}</button>
   </section>
 }

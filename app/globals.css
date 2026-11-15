@@ -15,10 +15,11 @@
  *  - neon-blue 5.6 / 5.1 / 5.0 → the accent for text, links, icons, focus and filled buttons (white on it: 5.6)
  *  - martian-red 9.4 • rocket-red 4.3 → never small text
  *  - blue-yonder 3.1 and neon-yellow 1.1 on white → never text on light surfaces
- *  - neon-yellow: accent only (CTA fill with deep-blue text 15.5, location/status dots), never a large background
+ *  - neon-yellow: accent only (location/status dots, slider thumb; deep-blue text on it 15.5), never a large background
  *    or a heading; on light surfaces its dots get a darker ring
  *  - Dark bands (topbar, footer, status bar, globe buttons) are deep-blue: white 17.4, neon-yellow 15.5
- *  - Team exceptions: purple (section header bands, white text 8.6) and green (positive changes, 5.1).
+ *  - Team exceptions: purple (white text 8.6), green (positive changes, 5.1) and mexican-pink (step-header bands,
+ *    white text 4.6; the badge text in mexican-pink on white is 4.6 too).
  *    Negative changes use martian-red (9.4); rocket-red is too light for small text.
  */
 @theme static {
@@ -35,6 +36,8 @@
      purple section headers and green for positive changes. White on purple 8.6:1; green on white 5.1:1. */
   --color-purple: #5B2DB3;
   --color-green: #1A7F37;
+  /* Requested by the user (2026-11-15, "a ver ahora con rosa mexicano"): solid step-header bands. White on it 4.6:1. */
+  --color-mexican-pink: #E4007C;
 
   --font-sans: var(--font-overpass), system-ui, sans-serif;
   --font-body: var(--font-overpass), system-ui, sans-serif;
@@ -136,10 +139,17 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .panel { --panel-pad: 20px; padding: var(--panel-pad); border: 1px solid var(--border); border-radius: 20px; background: var(--card); box-shadow: 0 1px 3px color-mix(in srgb, var(--color-deep-blue) 6%, transparent); }
 /* Section header from the team mockup: a lavender box inside the card with a purple step/role badge,
    a bold dark-purple title and the section icon on the right. Measured: title on the tint 11.0:1, badge text 8.5:1, icon 7.6:1. */
-.step-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--color-purple) 28%, var(--color-white)); border-radius: 14px; background: color-mix(in srgb, var(--color-purple) 7%, var(--color-white)); }
-.step-badge { flex-shrink: 0; padding: 6px 10px; border-radius: 8px; background: var(--color-purple); color: var(--color-white); font: 600 13px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
-.step-title { flex: 1; min-width: 0; margin: 0; font: 700 18px/1.2 var(--font-heading); color: color-mix(in srgb, var(--color-purple) 55%, var(--color-deep-blue)); }
-.step-icon { flex-shrink: 0; color: var(--color-purple); }
+/* Step headers are the page's signposts: a solid mexican-pink band, larger than the Step 1 H1, with a light sweep every
+   2 s (1 s wait, 1 s sweep) so they get noticed. --step is the band and --step-ink the text on it (white: 4.6:1); the badge and the
+   icon disc invert them (white fill, pink text and icon, 4.6:1). */
+.step-header { --step: var(--color-mexican-pink); --step-ink: var(--color-white); --step-badge-text: var(--step); position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding: 10px 14px; border: 1px solid var(--step); border-radius: 14px; background: var(--step); }
+.step-header::after { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 35%, color-mix(in srgb, var(--color-white) 45%, transparent) 50%, transparent 65%); transform: translateX(-100%); animation: step-shine 2s ease-in-out infinite; pointer-events: none; }
+@keyframes step-shine { 0%, 50% { transform: translateX(-100%); } 100% { transform: translateX(100%); } } /* 2 s cycle: 1 s wait, 1 s sweep */
+@media (prefers-reduced-motion: reduce) { .step-header::after { animation: none; display: none; } }
+.step-badge { flex-shrink: 0; padding: 8px 12px; border-radius: 8px; background: var(--step-ink); color: var(--step-badge-text); font: 700 15px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+.step-title { flex: 1; min-width: 0; margin: 0; font: 800 26px/1.15 var(--font-heading); color: var(--step-ink); }
+.step-hint { margin-left: 6px; font: 600 18px/1.2 var(--font-body); } /* e.g. "(if you know the exact location)" */
+.step-icon { flex-shrink: 0; box-sizing: content-box; padding: 8px; border-radius: 50%; background: var(--step-ink); color: var(--step); }
 .section-eyebrow { display: flex; align-items: center; gap: 8px; color: var(--foreground); }
 .icon-button { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 10px; background: var(--secondary); color: var(--secondary-foreground); transition: background-color .15s; }
 .icon-button:hover { background: var(--primary); }
@@ -164,7 +174,6 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .query-variables .variable-options { gap: 6px; }
 .query-variables .variable-option { min-height: 48px; padding: 5px 12px; }
 .setup-meta { margin-top: 12px; }
-.setup-meta .setup-note { margin: 0 0 8px; }
 .setup-meta .panel-footnote { padding-top: 8px; }
 /* H1 per brand guide: Fira Sans Black, all caps, 5% letter-spacing (never Neon Yellow) */
 .filters-panel h1 { margin: 0; font: 900 18px/1.2 var(--font-heading); letter-spacing: .05em; text-transform: uppercase; }
@@ -179,6 +188,13 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .select-wrap + .select-wrap { margin-top: 8px; }
 .select-wrap select:disabled { cursor: not-allowed; color: var(--muted-foreground); }
 .select-wrap select { text-overflow: ellipsis; }
+/* Country / state: typed inputs with native suggestions (datalist), styled like the selects */
+.place-field + .place-field { margin-top: 10px; }
+.input-label { display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600; color: var(--muted-foreground); }
+.select-wrap input { width: 100%; height: 40px; padding: 0 36px 0 14px; border-radius: 12px; border: 1px solid var(--input); background: var(--card); color: var(--foreground); font-size: 15px; font-weight: 600; text-overflow: ellipsis; transition: border-color .15s; }
+.select-wrap input:hover, .select-wrap input:focus { border-color: var(--primary); }
+.select-wrap input:disabled { cursor: not-allowed; color: var(--muted-foreground); }
+.select-wrap input::-webkit-calendar-picker-indicator { display: none !important; } /* Chrome's datalist arrow; the search icon marks the field */
 .coordinate-row { display: flex; align-items: center; gap: 12px; margin-top: 8px; font: 13px var(--font-mono); color: var(--muted-foreground); }
 .coordinate-source { margin-left: auto; color: var(--primary); }
 .variable-field { border: 0; padding: 0; min-width: 0; }
@@ -206,11 +222,9 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .period-row select { padding: 0 12px; font-family: var(--font-mono); font-weight: 500; }
 .period-dash, .period-years { color: var(--muted-foreground); }
 .setup-actions { margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border); }
-.analyze-button { width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid color-mix(in srgb, var(--color-neon-yellow) 82%, var(--color-deep-blue)); border-radius: 12px; background: var(--color-neon-yellow); color: var(--color-deep-blue); font-size: 16px; font-weight: 700; transition: background-color .15s; }
-.analyze-button:hover { background: color-mix(in srgb, var(--color-neon-yellow) 88%, var(--color-deep-blue)); }
-.analyze-button span { font-size: 18px; line-height: 10px; }
-.setup-note { display: flex; gap: 8px; align-items: flex-start; margin: 12px 0 16px; font-size: 12px; line-height: 1.45; color: var(--muted-foreground); }
-.setup-note svg { flex-shrink: 0; margin-top: 1px; }
+/* The main call to action in neon-blue, like the page's other filled buttons (white text 5.6:1); electric-blue on hover */
+.analyze-button { width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--color-neon-blue); border-radius: 12px; background: var(--color-neon-blue); color: var(--color-white); font-size: 16px; font-weight: 700; transition: background-color .15s; }
+.analyze-button:hover { background: var(--color-electric-blue); }
 .panel-footnote { display: flex; gap: 8px; align-items: center; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted-foreground); }
 .step-number { font-family: var(--font-mono); color: var(--primary); }
 
@@ -322,6 +336,20 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 /* ChartDot: zero-length round-capped strokes stay round in the stretched 100 × 100 viewBox (circles became ellipses) */
 .chart-dot-ring { stroke: var(--primary); stroke-width: 7; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .chart-dot-core { stroke: var(--card); stroke-width: 4; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+/* Point inspection (usePointInspector): guide line, enlarged point and a floating card placed at the point.
+   The card's left/top map the plot's 0–100 space past the y-axis gutter (52px) and the x-axis band (22px / 20px). */
+.series-svg { touch-action: pan-y; cursor: crosshair; }
+.chart-guide { stroke: color-mix(in srgb, var(--color-deep-blue) 40%, transparent); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.is-active .chart-dot-ring { stroke-width: 12; }
+.is-active .chart-dot-core { stroke-width: 6; stroke: var(--color-neon-yellow); }
+.climatology-bar.is-active { fill: var(--primary); }
+.series-chart:focus-visible, .climatology-chart:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 6px; }
+.chart-tip { position: absolute; z-index: 20; left: calc(52px + (100% - 52px) * var(--tx) / 100); top: calc((100% - 22px) * var(--ty) / 100); transform: translate(-50%, calc(-100% - 14px)); display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-left: 3px solid var(--color-neon-yellow); border-radius: 8px; background: var(--color-deep-blue); color: var(--color-white); font: 13px/1.35 var(--font-body); white-space: nowrap; pointer-events: none; box-shadow: 0 4px 12px color-mix(in srgb, var(--color-deep-blue) 25%, transparent); }
+.chart-tip.is-left { transform: translate(calc(-100% - 14px), -50%); }
+.chart-tip.is-right { transform: translate(14px, -50%); }
+.chart-tip strong { font: 700 13px var(--font-mono); letter-spacing: .04em; }
+.chart-tip-value { font: 700 16px var(--font-mono); }
+.climatology-chart .chart-tip { top: calc((100% - 20px) * var(--ty) / 100); }
 .chart-disclaimer { margin: 8px 0 0; text-align: center; font-size: 12px; line-height: 1.45; color: var(--muted-foreground); }
 .loading-icon { margin-bottom: 8px; color: var(--primary); animation: earthscope-spin 1.2s linear infinite; }
 @keyframes earthscope-spin { to { transform: rotate(360deg); } }
@@ -674,6 +702,8 @@ p.crosscheck-empty { flex-direction: row; align-items: center; }
 .place-sentence { margin: 0; padding: 12px 14px; border-left: 3px solid var(--color-deep-blue); background: var(--muted); font-size: 15px; line-height: 1.5; }
 
 @media (max-width: 760px) {
+  .step-title { font-size: 20px; }
+  .step-badge { font-size: 13px; }
   .detail-grid, .detail-side { grid-template-columns: 1fr; }
   .signal-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .explorer-filters .segmented, .layer-controls .segmented { width: 100%; }
@@ -746,7 +776,6 @@ p.crosscheck-empty { flex-direction: row; align-items: center; }
 .result-headline.is-up .result-headline-icon { color: var(--color-green); }
 .result-headline.is-down .result-headline-icon { color: var(--color-martian-red); }
 .result-headline-text { font: 700 17px/1.4 var(--font-heading); color: var(--foreground); }
-.result-headline-detail { margin-top: 4px; font-size: 13px; line-height: 1.45; color: var(--muted-foreground); }
 
 /* Evidence file: the technical record is folded by default */
 .evidence-more { margin-top: 4px; border-top: 1px solid var(--border); }

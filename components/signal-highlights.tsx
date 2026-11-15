@@ -38,7 +38,6 @@ export function SignalHighlights({ point, isLoading, error, onFocus }: { point?:
             </li>
           })}
         </ol> : <p className="evidence-muted">No variable passes the robustness rules at this cell for this period.</p>}
-        <p className="field-hint">Precipitation is never ranked: its trend sign depends on the start year and stations disagree with the reanalysis.</p>
       </>}
   </aside>
 }

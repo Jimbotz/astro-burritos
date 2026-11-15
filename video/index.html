@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #07173F; }
+      #root { position: relative; width: 100%; height: 100%; }
+      #root > video { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; object-fit: contain; z-index: 1; }
+      #overlay { z-index: 10; }
+    </style>
+  </head>
+  <body>
+    <!-- Real footage of the EarthScope app (screencast of commit 9719dd8, live NASA POWER data). Script text lives in compositions/overlay.html. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="30" data-width="1920" data-height="1080">
+      <video id="v1-globe" class="clip" src="assets/clips/s1-globe.mp4" data-start="0" data-duration="3" data-track-index="0" muted playsinline></video>
+      <video id="v2-click" class="clip" src="assets/clips/s2-click.mp4" data-start="3" data-duration="1.2" data-track-index="0" muted playsinline></video>
+      <video id="v3-chart" class="clip" src="assets/clips/s3-chart.mp4" data-start="4.2" data-duration="3.8" data-track-index="0" muted playsinline></video>
+      <video id="v4-headline" class="clip" src="assets/clips/s4-headline.mp4" data-start="8" data-duration="3" data-track-index="0" muted playsinline></video>
+      <video id="v5-evidence" class="clip" src="assets/clips/s5-evidence.mp4" data-start="11" data-duration="2.5" data-track-index="0" muted playsinline></video>
+      <video id="v6-map" class="clip" src="assets/clips/s6-map.mp4" data-start="13.5" data-duration="2.5" data-track-index="0" muted playsinline></video>
+      <video id="v7-tabs" class="clip" src="assets/clips/s7-tabs.mp4" data-start="16" data-duration="5" data-track-index="0" muted playsinline></video>
+      <video id="v8-oaxaca" class="clip" src="assets/clips/s8-oaxaca.mp4" data-start="21" data-duration="2.5" data-track-index="0" muted playsinline></video>
+      <video id="v9-oaxaca-map" class="clip" src="assets/clips/s9-oaxaca-map.mp4" data-start="23.5" data-duration="2.5" data-track-index="0" muted playsinline></video>
+      <div
+        id="overlay"
+        data-composition-id="overlay"
+        data-composition-src="compositions/overlay.html"
+        data-start="0"
+        data-duration="30"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

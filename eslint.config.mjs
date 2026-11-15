@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     // Python audit scripts and saved responses, not app code.
     'docs/**',
     'tests/fixtures/**',
+    // HyperFrames demo video, not app code.
+    'video/**',
   ]),
 ])
 

@@ -47,6 +47,20 @@ pnpm build          # production build with type checking
 
 No API keys are needed. NASA POWER is public.
 
+### Run with Docker
+
+```bash
+docker build -t earthscope .
+docker run --rm -p 3000:3000 earthscope   # http://localhost:3000
+```
+
+The container needs internet access, because data is requested live from NASA POWER.
+
+### Deploy
+
+- **Vercel:** import the repository at vercel.com/new. It needs no settings or environment variables, and every push to `main` deploys.
+- **Any Docker host** (Render, Fly.io, Google Cloud Run, a VPS): build the image above and expose port 3000. Put it behind a proxy that sets `X-Forwarded-For`, or the per-client rate limit treats every visitor as one client.
+
 ## API
 
 | Endpoint | Purpose |

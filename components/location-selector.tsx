@@ -5,7 +5,8 @@ import { ChevronDown, MapPin } from 'lucide-react'
 import { useCountries, useStates } from '@/lib/geo'
 
 // `country` is Natural Earth's ADM0_A3 code and `state` its admin-1 name. An ocean click has neither.
-// lat/lon is always the single point NASA POWER analyzes, never an area average.
+// lat/lon is the picked point, never an area average. NASA POWER returns the native MERRA-2 cell
+// (0.5° × 0.625°) nearest to it, so values describe that cell, not the city or a station.
 export type Region = { name: string; lat: number; lon: number; country?: string; state?: string }
 
 const round = (value: number) => Number(value.toFixed(2))
@@ -42,6 +43,6 @@ export function LocationSelector({ value, onChange }: { value: Region; onChange:
       {sortedStates?.map((feature, index) => <option key={`${feature.properties.name}-${index}`} value={feature.properties.name}>{feature.properties.name}</option>)}
     </select><ChevronDown size={16} aria-hidden="true" /></div>
     <div className="coordinate-row"><span>{value.lat.toFixed(2)}° {value.lat >= 0 ? 'N' : 'S'}</span><span>{Math.abs(value.lon).toFixed(2)}° {value.lon >= 0 ? 'E' : 'W'}</span><span className="coordinate-source">WGS84</span></div>
-    <p className="field-hint">NASA POWER analyzes this point, not an area average.</p>
+    <p className="field-hint">NASA POWER returns the 0.5° × 0.625° grid cell that contains this point, not an area average.</p>
   </div>
 }

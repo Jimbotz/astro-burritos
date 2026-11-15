@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Self-contained server in .next/standalone for the Dockerfile. Vercel and `next start` ignore it.
+  output: 'standalone',
   async headers() {
     // No X-Frame-Options on purpose: it blocks the v0 preview, which embeds the app in an iframe.
     return [{ source: '/(.*)', headers: [

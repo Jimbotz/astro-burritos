@@ -36,7 +36,8 @@ export default function RootLayout({
     <html lang="en" className={`${firaSans.variable} ${overpass.variable} ${firaCode.variable}`}>
       <body className="antialiased">
         {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        {/* Only on Vercel: elsewhere (Docker, local `next start`) /_vercel/insights doesn't exist and would 404. */}
+        {process.env.VERCEL && <Analytics />}
       </body>
     </html>
   )

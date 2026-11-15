@@ -121,6 +121,17 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .query-panel .step-header, .maps-row .step-header { margin-bottom: 12px; }
 .results-row { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
 .results-title { margin: 8px 0 0; font: 700 24px/1.2 var(--font-heading); }
+/* Results wait blurred until Analyze (data-state idle), pulse while the point request runs (loading), then sharpen. */
+.results, .results-body { display: flex; flex-direction: column; gap: inherit; }
+.results { position: relative; scroll-margin-top: 16px; }
+.results-body { transition: filter .4s ease, opacity .4s ease; }
+.results:not([data-state="ready"]) .results-body { filter: blur(6px); opacity: .55; user-select: none; }
+.results[data-state="loading"] .results-body { animation: results-pulse 1.4s ease-in-out infinite; }
+@keyframes results-pulse { 50% { opacity: .3; } }
+.results-veil { position: absolute; z-index: 2; top: 64px; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 12px 20px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); color: var(--foreground); font-weight: 600; text-align: center; }
+.results-veil:empty { display: none; }
+.results-spinner { flex: none; color: var(--primary); animation: earthscope-spin 1.2s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .results[data-state="loading"] .results-body { animation: none; } }
 .panel { --panel-pad: 20px; padding: var(--panel-pad); border: 1px solid var(--border); border-radius: 20px; background: var(--card); box-shadow: 0 1px 3px color-mix(in srgb, var(--color-deep-blue) 6%, transparent); }
 /* Section header from the team mockup: a lavender box inside the card with a purple step/role badge,
    a bold dark-purple title and the section icon on the right. Measured: title on the tint 11.0:1, badge text 8.5:1, icon 7.6:1. */

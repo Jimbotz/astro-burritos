@@ -2,7 +2,7 @@
 
 import { useState, useSyncExternalStore } from 'react'
 import Image from 'next/image'
-import { ArrowRight, ArrowUpRight, Globe, Info, MapPin, MapPinned, MousePointerClick, Navigation, Pause, Play, Rotate3d, RotateCcw, Sparkles, ZoomIn } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, Globe, Info, LoaderCircle, MapPin, MapPinned, MousePointerClick, Navigation, Pause, Play, Rotate3d, RotateCcw, Sparkles, ZoomIn } from 'lucide-react'
 import { EarthGlobe } from '@/components/earth-globe'
 import { PanelHeader } from '@/components/panel-header'
 import { LocationSelector, type Region } from '@/components/location-selector'
@@ -81,14 +81,22 @@ export function AppShell() {
     setPaused(true)
   }
 
+  // The results sit two screens below Step 1, so Analyze brings them into view (not on a shared link's first load).
+  const showResults = () => document.getElementById('results')?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
+
   function analyze() {
     setAnalysisRequested(true)
     window.history.replaceState(null, '', encodeQuery({ region, variable, startYear, endYear, layer: layerKind }))
+    showResults()
   }
 
   function runExample(example: (typeof EXAMPLES)[number]) {
     apply({ region: example.region, variable: example.variable, startYear: 2001, endYear: 2024, layer: example.kind })
+    showResults()
   }
+
+  // Results stay blurred until Analyze and pulse while the point request runs. Errors show sharp, with their retry.
+  const resultsState = !analysisRequested ? 'idle' : point.isLoading ? 'loading' : 'ready'
 
   return (
     <main className="app-shell">
@@ -151,7 +159,11 @@ export function AppShell() {
           <AreaMap region={region} startYear={startYear} endYear={endYear} variable={variable} kind={layerKind} active={analysisRequested} />
         </div>
 
-        <h2 className="results-title">Results</h2>
+        <section id="results" className="results" data-state={resultsState} aria-busy={resultsState === 'loading'} aria-labelledby="results-title">
+        <h2 className="results-title" id="results-title">Results</h2>
+        <p className="results-veil" role="status">{resultsState === 'idle' ? <><MousePointerClick size={16} /> Press Analyze region to see the results for {region.name}.</> : resultsState === 'loading' ? <><LoaderCircle size={16} className="results-spinner" /> Requesting NASA POWER data for {region.name}…</> : null}</p>
+        {/* Under the blur sit the cards' own empty states, never placeholder numbers. */}
+        <div className="results-body" inert={resultsState !== 'ready'}>
         <ResultHeadline place={region.name} variable={variable} point={point.data} isLoading={point.isLoading} error={point.error} analysisRequested={analysisRequested} />
         <ResultsPanel region={region} variable={variable} startYear={startYear} endYear={endYear} analysisRequested={analysisRequested} point={point.data} error={point.error} isLoading={point.isLoading} />
         <div className="results-row">
@@ -160,6 +172,8 @@ export function AppShell() {
         </div>
         <SignalExplorer point={point.data} isLoading={point.isLoading} error={point.error} analysisRequested={analysisRequested} focus={focus} onFocus={setFocus} onRetry={() => point.mutate()} startYear={startYear} endYear={endYear} />
         <EvidencePanel variable={variable} point={point.data} analysisRequested={analysisRequested} error={point.error} isLoading={point.isLoading} />
+        </div>
+        </section>
       </div>
 
       <footer className="app-footer"><DataSourceBadge /><span className="footer-center">Scientific evidence before visual certainty. • Earth imagery: NASA Blue Marble • Boundaries: Natural Earth</span><a href="https://power.larc.nasa.gov/" target="_blank" rel="noreferrer">NASA POWER project <ArrowUpRight size={16} /></a></footer>

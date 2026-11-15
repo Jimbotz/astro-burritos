@@ -36,17 +36,18 @@ export const regionUrl = (request: RegionRequest) => `/api/region?${new URLSearc
  */
 export function useRegionLayer(request: RegionRequest | null) {
   const key = request ? regionUrl(request) : null
-  const controller = useRef<AbortController | null>(null)
-  const lastKey = useRef<string | null>(null)
-  // Abort only when the key really changes (not on React's development double-mount, which would cancel every request).
+  // Each controller remembers its key. SWR starts the new key's fetch (a layout effect) before this effect runs, so
+  // aborting "the current controller" on a key change killed the request just started for the new key (switching
+  // examples left "The grid request was cancelled"). Abort only a request that belongs to another key. That also
+  // keeps React's development double-mount (same key) from cancelling anything.
+  const controller = useRef<{ key: string; abort: AbortController } | null>(null)
   useEffect(() => {
-    if (lastKey.current !== null && lastKey.current !== key) controller.current?.abort()
-    lastKey.current = key
+    if (controller.current && controller.current.key !== key) controller.current.abort.abort()
   }, [key])
   return useSWR<RegionResponse, Error>(key, async (url: string) => {
-    controller.current?.abort()
+    controller.current?.abort.abort()
     const current = new AbortController()
-    controller.current = current
+    controller.current = { key: url, abort: current }
     try {
       return await readJson<RegionResponse>(await fetch(url, { signal: current.signal }))
     } catch (error) {

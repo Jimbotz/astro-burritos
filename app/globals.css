@@ -662,9 +662,18 @@ p.crosscheck-empty { flex-direction: row; align-items: center; }
 .dual-chart { margin: 0; }
 .dual-line { stroke-width: 2; vector-effect: non-scaling-stroke; }
 .dual-trend { stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
-.dual-dot { stroke-width: 6; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+/* Points as in ChartDot (ring in the series colour, card-coloured core); the inspected year grows with a yellow core */
+.dual-dot { stroke-width: 7; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.dual-dot-core { stroke: var(--card); stroke-width: 4; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.dual-series .is-active .dual-dot { stroke-width: 12; }
+.dual-series .is-active .dual-dot-core { stroke-width: 6; stroke: var(--color-neon-yellow); }
 .dual-series.is-a .dual-line, .dual-series.is-a .dual-trend, .dual-series.is-a .dual-dot { stroke: var(--primary); }
 .dual-series.is-b .dual-line, .dual-series.is-b .dual-trend, .dual-series.is-b .dual-dot { stroke: var(--color-purple); }
+/* Inside the deep-blue chart tip the series keys use lighter tints of their colours */
+.dual-tip-row { display: flex; align-items: center; gap: 6px; }
+.dual-tip-row b { font: 700 14px var(--font-mono); }
+.chart-tip .dual-tip-row.is-a .dual-swatch { border-top-color: var(--color-blue-yonder); }
+.chart-tip .dual-tip-row.is-b .dual-swatch { border-top-color: color-mix(in srgb, var(--color-purple) 45%, var(--color-white)); }
 .dual-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 6px; padding-left: 52px; font-size: 12px; color: var(--muted-foreground); }
 .dual-key { display: inline-flex; align-items: center; gap: 6px; }
 .dual-swatch { width: 18px; height: 0; border-top: 3px solid var(--primary); }
@@ -684,12 +693,13 @@ p.crosscheck-empty { flex-direction: row; align-items: center; }
 .check-table th, .check-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
 .check-table thead th { font-size: 12px; font-weight: 700; color: var(--muted-foreground); }
 .check-table td { font-family: var(--font-mono); }
-.check > div:has(.check-table) { overflow-x: auto; }
 .crosscheck-why { padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; }
 .crosscheck-why summary { font-size: 14px; font-weight: 700; color: var(--primary); cursor: pointer; }
 .crosscheck-why ul { margin: 8px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.5; color: var(--foreground); }
 .crosscheck-why li + li { margin-top: 6px; }
-.crosscheck-foot { margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted-foreground); }
+/* "How it was tested" (.info-details) inside the cards: the flex gap spaces it, the table scrolls on narrow screens */
+.crosscheck-tested { margin-top: 0; }
+.check-table-wrap { overflow-x: auto; padding: 0 10px 8px; }
 .place-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .place-column { min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 12px; }
 .place-column:nth-child(1) { border-top: 3px solid var(--primary); }
@@ -760,6 +770,10 @@ p.crosscheck-empty { flex-direction: row; align-items: center; }
   .chart-header { flex-wrap: wrap; }
   .evidence-source { grid-template-columns: 1fr; }
   .place-columns { grid-template-columns: minmax(0, 1fr); }
+  /* The long "Cross-check" badge leaves the title no room on a phone: badge and icon on one row, the title below */
+  .crosscheck-panel .step-header { flex-wrap: wrap; }
+  .crosscheck-panel .step-icon { margin-left: auto; }
+  .crosscheck-panel .step-title { order: 3; flex-basis: 100%; }
   .crosscheck-select { width: 100%; justify-content: space-between; }
   .crosscheck-select select { flex: 1; max-width: none; }
   .footer-center { order: 3; width: 100%; }

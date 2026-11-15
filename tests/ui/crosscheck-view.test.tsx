@@ -92,6 +92,17 @@ describe('cross-check cards', () => {
     expect(html).not.toMatch(/NaN|undefined/)
   })
 
+  it('follows the main design: header hint, numbers folded under “How it was tested”, no tip until a year is inspected', () => {
+    const html = renderToStaticMarkup(<RainCrosscheck place="Puebla, Mexico" data={puebla} isLoading={false} analysisRequested onRetry={() => {}} />)
+    expect(html).toContain('<span class="step-hint">(MERRA-2 vs IMERG)</span>')
+    // The table and the fixed rules sit inside the folded block, after the three visible answers.
+    const tested = html.indexOf('How it was tested')
+    expect(tested).toBeGreaterThan(html.indexOf('Same trend?'))
+    expect(html.indexOf('class="check-table"')).toBeGreaterThan(tested)
+    expect(html.indexOf('Rules fixed in advance')).toBeGreaterThan(tested)
+    expect(html).not.toContain('chart-tip')
+  })
+
   it('waits for Analyze in both cards instead of showing numbers', () => {
     const rain = renderToStaticMarkup(<RainCrosscheck place="Puebla, Mexico" isLoading={false} analysisRequested={false} onRetry={() => {}} />)
     expect(rain).toContain('Press Analyze region to compare the two rain records.')
@@ -107,5 +118,7 @@ describe('cross-check cards', () => {
     expect(html.match(/<polyline/g)).toHaveLength(2) // A: only 2003–2004 forms a line (2001 stands alone); B: one line
     expect(html).toContain('dual-key is-a')
     expect(html).toContain('dual-key is-b')
+    // Inspectable like SeriesChart: focusable group, read with pointer or arrow keys.
+    expect(html).toMatch(/class="series-chart"[^>]*tabindex="0"[^>]*role="group" aria-label="test\. Hover, tap or use the arrow keys to read each year\."/)
   })
 })

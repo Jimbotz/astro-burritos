@@ -31,7 +31,7 @@ Shared links run the analysis but do not scroll. Scroll down to the section name
 | 5 | 3:30–4:15 | Tab B, Results | Rain: series and anomalies, no trend claim |
 | 6 | 4:15–5:15 | Tab B, Two NASA rain records card | MERRA-2 vs. GPM IMERG for Puebla: Inconclusive |
 | 7 | 5:15–6:30 | Tab C, Two NASA rain records card | A real disagreement in Tlaxcala |
-| 8 | 6:30–7:15 | Same card, rules line and reasons | How Agree / Disagree / Inconclusive is decided |
+| 8 | 6:30–7:15 | Same card, How it was tested and reasons | How Agree / Disagree / Inconclusive is decided |
 | 9 | 7:15–8:30 | Tab A, Results, Statistical summary | 95% interval, Mann–Kendall, the five checks |
 | 10 | 8:30–9:30 | Evidence file | Spatial limits and data provenance |
 | — | 9:30–10:00 | | Buffer for one question |
@@ -88,9 +88,11 @@ Switch to tab C (or press the **Two rain records disagree** example, which scrol
 >
 > The purple line is GPM IMERG for the same cell: **−27 mm per decade**, not significant. Their 95% intervals do not even overlap. EarthScope says **Disagree** and makes no rain claim.
 
+Optional: hover any year on the chart (or tab into it and use the arrow keys). The card shows both records for that year and the gap between them.
+
 ### 8 · How the verdict is decided (6:30–7:15)
 
-Point at the rules line under the card and open **Why trust this result, or not**.
+Open **How it was tested** under the card (the rules and the numbers) and point at **Why trust this result, or not**.
 
 > The rules were fixed before we looked at any result. A record detects a trend when its Hamed–Rao p is below 0.05.
 > - **Agree:** both detect a trend in the same direction and their intervals overlap.

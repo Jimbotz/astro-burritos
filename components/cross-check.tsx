@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
-import { CircleCheck, CircleHelp, CircleX, CloudRain, GitCompareArrows, LoaderCircle, RotateCcw } from 'lucide-react'
+import { CircleCheck, CircleHelp, CircleX, CloudRain, GitCompareArrows, Info, LoaderCircle, RotateCcw } from 'lucide-react'
 import type { Region } from '@/components/location-selector'
 import { DualSeriesChart } from '@/components/dual-series-chart'
 import { PanelHeader } from '@/components/panel-header'
@@ -36,8 +36,8 @@ export function RainCrosscheck({ place, data, isLoading, error, analysisRequeste
   const comparison = data?.comparisons.find((item) => item.id === view) ?? data?.comparisons[0]
 
   return <section className="crosscheck-panel panel" aria-labelledby="rain-check-title">
-    <PanelHeader badge="Cross-check" title="Two NASA rain records" icon={CloudRain} titleId="rain-check-title" />
-    <p className="crosscheck-intro">Does a second NASA record, built a different way, tell the same rain story for {place}? <strong>MERRA-2</strong> (a weather model corrected with rain gauges) and <strong>GPM IMERG</strong> (satellites calibrated with rain gauges), both from the NASA POWER API and averaged over the same 0.5° × 0.625° cell.</p>
+    <PanelHeader badge="Cross-check" title="Two NASA rain records" hint="MERRA-2 vs IMERG" icon={CloudRain} titleId="rain-check-title" />
+    <p className="crosscheck-intro">Does a second NASA record, built a different way, tell the same rain story for {place}?</p>
     {!analysisRequested ? <p className="crosscheck-empty">Press Analyze region to compare the two rain records.</p>
       : error ? <div className="crosscheck-empty" role="alert"><p>{error.message}</p><button className="export-button retry-button" type="button" onClick={onRetry}><RotateCcw size={16} /> Try again</button></div>
       : isLoading || !data || !comparison ? <p className="crosscheck-empty" role="status"><LoaderCircle size={16} className="results-spinner" /> Requesting MERRA-2 and GPM IMERG rain from NASA POWER…</p>
@@ -59,8 +59,16 @@ function RainBody({ data, comparison, view, onView }: { data: CrosscheckResponse
     <ol className="check-list">
       <Check state={checks.level} question="Same amount of rain?"><p>{levelSentence(comparison.level)}</p></Check>
       <Check state={checks.yearToYear} question="Same wet and dry years?"><p>{yearToYearSentence(comparison.level)}</p></Check>
-      <Check state={checks.trend} question="Same trend?">
-        <p>{sourceTrendSentence(comparison)}</p>
+      <Check state={checks.trend} question="Same trend?"><p>{sourceTrendSentence(comparison)}</p></Check>
+    </ol>
+    <details className="crosscheck-why" open>
+      <summary>Why trust this result, or not</summary>
+      <ul>{comparison.reasons.map((reason) => <li key={reason}>{reasonText(reason, comparison)}</li>)}</ul>
+    </details>
+    {/* The numbers behind the three answers and the fixed rules, folded as in the rest of the page. */}
+    <details className="info-details crosscheck-tested">
+      <summary><Info size={16} /> How it was tested</summary>
+      <div className="check-table-wrap">
         <table className="check-table">
           <thead><tr><th scope="col">Record</th><th scope="col">Sen trend</th><th scope="col"><Term name="ci95">95% interval</Term></th><th scope="col"><Term name="hamedRao">Hamed–Rao p</Term></th><th scope="col"><Term name="mannKendall">Mann–Kendall p</Term></th><th scope="col">Years</th></tr></thead>
           <tbody>{[merra2, imerg].map((source) => <tr key={source.id}>
@@ -72,33 +80,33 @@ function RainBody({ data, comparison, view, onView }: { data: CrosscheckResponse
             <td>{source.trend.nYears}</td>
           </tr>)}</tbody>
         </table>
-      </Check>
-    </ol>
-    <details className="crosscheck-why" open>
-      <summary>Why trust this result, or not</summary>
-      <ul>{comparison.reasons.map((reason) => <li key={reason}>{reasonText(reason, comparison)}</li>)}</ul>
+      </div>
+      <p>Rules fixed in advance: a record detects a trend when its Hamed–Rao p &lt; {data.rules.alpha}. <strong>Agree</strong> = both detect one of the same sign with overlapping 95% intervals; <strong>disagree</strong> = opposite signs or intervals that do not overlap; otherwise <strong>inconclusive</strong>. Same amount = means within ±{data.rules.levelTolerancePercent}%; wet and dry years compare the records after removing each one’s trend.</p>
+      <p>MERRA-2 (a weather model corrected with rain gauges) and GPM IMERG (satellites calibrated with rain gauges), both from the NASA POWER API. IMERG: {data.footprint.pixelCount} pixels of {data.footprint.pixelDegrees}° averaged over the same 0.5° × 0.625° cell. Window {data.window.startYear}–{data.window.endYear}{data.window.clippedToImerg ? ' (IMERG starts in 1998)' : ''}. Rain is never stated as rising or falling.</p>
     </details>
-    <p className="crosscheck-foot">Rules fixed in advance: a record detects a trend when its Hamed–Rao p &lt; {data.rules.alpha}; <strong>agree</strong> = both detect one of the same sign with overlapping 95% intervals; <strong>disagree</strong> = opposite signs or intervals that do not overlap; otherwise <strong>inconclusive</strong>. Window {data.window.startYear}–{data.window.endYear}{data.window.clippedToImerg ? ' (IMERG starts in 1998)' : ''} • IMERG: {data.footprint.pixelCount} pixels of {data.footprint.pixelDegrees}° averaged over the cell • rain is never stated as rising or falling.</p>
   </>
 }
 
 const POINT_VARIABLES = VARIABLES.filter((variable) => variable.availability.point)
 
-function PlaceColumn({ name, point, result }: { name: string; point?: PointResponse; result?: VariableResult }) {
+function PlaceColumn({ name, result }: { name: string; result?: VariableResult }) {
   const display = result?.trend.display
   const unit = unitEn(display?.unit ?? '')
   const digits = digitsForUnit(unit)
   return <div className="place-column">
     <h3>{name}</h3>
-    {point && <p className="evidence-muted">Cell {formatNumber(point.support.centerLat, 2)}°, {formatNumber(point.support.centerLon, 3)}° • {point.support.elevationM !== null ? `${Math.round(point.support.elevationM).toLocaleString('en-US')} m` : 'elevation not reported'}</p>}
     {result ? <dl className="place-metrics">
       <div><dt>Verdict</dt><dd><VerdictBadge verdict={result.trend.verdict} />{!result.trend.claimAllowed && <> <span className="signal-tag">No trend claim</span></>}</dd></div>
-      <div><dt>Trend</dt><dd>{formatSigned(display?.slope, digits)} {unit}</dd></div>
-      <div><dt><Term name="ci95">95% interval</Term></dt><dd>{display?.ci95 ? `${formatSigned(display.ci95[0], digits)} to ${formatSigned(display.ci95[1], digits)}` : '—'}</dd></div>
-      <div><dt><Term name="hamedRao">Hamed–Rao p</Term></dt><dd>{formatPValue(result.trend.pValueHamedRao)}</dd></div>
-      <div><dt>Complete years</dt><dd>{result.trend.nYears}</dd></div>
+      <div><dt>Change per decade</dt><dd>{formatSigned(display?.slope, digits)} {unit}</dd></div>
+      <div><dt><Term name="ci95">Likely range</Term></dt><dd>{display?.ci95 ? `${formatSigned(display.ci95[0], digits)} to ${formatSigned(display.ci95[1], digits)}` : '—'}</dd></div>
     </dl> : <p className="crosscheck-empty">—</p>}
   </div>
+}
+
+/** One place's numbers behind its column, for "How it was tested". */
+function placeTested(name: string, point: PointResponse | undefined, result: VariableResult) {
+  const cell = point ? `cell ${formatNumber(point.support.centerLat, 2)}°, ${formatNumber(point.support.centerLon, 3)}° at ${point.support.elevationM !== null ? `${Math.round(point.support.elevationM).toLocaleString('en-US')} m` : 'an unreported elevation'}` : 'cell not reported'
+  return <p key={name}><strong>{name}</strong>: {cell}; Hamed–Rao p {formatPValue(result.trend.pValueHamedRao)}; {result.trend.nYears} complete years; {result.trend.criteriaMet} of 5 checks.</p>
 }
 
 // The same variable, period and tests at a second place (a second GET /api/point). Each place is its own MERRA-2 cell.
@@ -125,8 +133,8 @@ export function PlaceComparison({ region, variable, point, compareWith, onCompar
   const line = (result?: VariableResult) => (result ? (result.trend.display.method === 'sen-mann-kendall' ? result.trend.lines.sen : result.trend.lines.ols) : null)
 
   return <section className="crosscheck-panel panel" aria-labelledby="place-check-title">
-    <PanelHeader badge="Cross-check" title="Two places, same rules" icon={GitCompareArrows} titleId="place-check-title" />
-    <p className="crosscheck-intro">Is the signal local or shared? Compare {region.name} with another place: the same NASA POWER variable, the same period and the same tests.</p>
+    <PanelHeader badge="Cross-check" title="Two places, same rules" hint="local or shared?" icon={GitCompareArrows} titleId="place-check-title" />
+    <p className="crosscheck-intro">The same NASA POWER variable, period and tests at a second place.</p>
     <div className="crosscheck-toolbar">
       <label className="crosscheck-select">Compare with
         <select value={compareWith ?? ''} onChange={(event) => onCompareWith((event.target.value || null) as ComparePlaceId | null)}>
@@ -148,12 +156,17 @@ export function PlaceComparison({ region, variable, point, compareWith, onCompar
       : !resultA || !resultB ? <p className="crosscheck-empty" role="status"><LoaderCircle size={16} className="results-spinner" /> Requesting NASA POWER data for {other.name}…</p>
       : <>
         <div className="place-columns">
-          <PlaceColumn name={region.name} point={point} result={resultA} />
-          <PlaceColumn name={other.name} point={second.data} result={resultB} />
+          <PlaceColumn name={region.name} result={resultA} />
+          <PlaceColumn name={other.name} result={resultB} />
         </div>
         <DualSeriesChart a={{ name: region.name, points: plotted(resultA.annual), line: line(resultA) }} b={{ name: other.name, points: plotted(resultB.annual), line: line(resultB) }} unit={unit} digits={digitsForUnit(unit)} label={`${resultA.label.en} in ${region.name} and ${other.name}, ${startYear}–${endYear}`} />
         {comparison && <p className="place-sentence">{placeSentence(comparison, [region.name, other.name], claimAllowed)}</p>}
-        <p className="crosscheck-foot">Each value describes a whole 0.5° × 0.625° MERRA-2 cell, not a city or a station. Same rules as for the two rain records: a place detects a trend when its Hamed–Rao p &lt; 0.05, and two places differ when their trends have opposite signs or their 95% intervals do not overlap.</p>
+        <details className="info-details crosscheck-tested">
+          <summary><Info size={16} /> How it was tested</summary>
+          {placeTested(region.name, point, resultA)}
+          {placeTested(other.name, second.data, resultB)}
+          <p>Each value describes a whole 0.5° × 0.625° MERRA-2 cell, not a city or a station. Same rules as the two rain records: a place detects a trend when its Hamed–Rao p &lt; 0.05, and two places differ when their trends have opposite signs or their 95% intervals do not overlap.</p>
+        </details>
       </>}
   </section>
 }

@@ -132,7 +132,10 @@ export function ProjectionPanel({ variable, data, active, isLoading, on, onToggl
 
     {/* Visible validation: dates and percentages only; the numbers behind them are in "How it was tested". */}
     {holdout && <p className={`projection-summary${holdout.skill < rule.minSkill ? ' is-short' : ''}`}>
-      Tested on {holdout.years[0]}–{holdout.years[1]}: <strong>{skillText(holdout.skill)}</strong> than the average (needs {Math.round(rule.minSkill * 100)}% better)
+      <span>Back-test {holdout.years[0]}–{holdout.years[1]}: <strong>{skillText(holdout.skill)}</strong> than predicting the average (needs {Math.round(rule.minSkill * 100)}%)</span>
+      <InfoTip label="What the back-test means">
+        The line was fitted on the years before each window ({holdout.windows.map((window) => `${window.years[0]}–${window.years[1]}`).join(', then ')}) and asked to predict it. Its misses are compared with simply predicting the average. It must beat the average by {Math.round(rule.minSkill * 100)}% to be extended.
+      </InfoTip>
     </p>}
     {holdout && holdout.windows.length > 1 && <ul className="projection-windows" aria-label="Improvement over the average in each validation window">
       {holdout.windows.map((window) => <li key={window.years[0]} className={window.skill > 0 ? '' : 'is-worse'}>

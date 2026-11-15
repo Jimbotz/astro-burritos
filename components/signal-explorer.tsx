@@ -62,7 +62,7 @@ export function SignalExplorer({ point, isLoading, error, analysisRequested, foc
               {visible.map((result) => <SignalCard key={result.id} result={result} selected={result.id === selected?.id} onSelect={() => onFocus(result.id)} />)}
             </div> : <p className="evidence-muted">No variable matches these filters.</p>}
           </div>
-          <p className="chart-disclaimer">Changes are per decade in each variable’s own scale. Arrows appear only for robust or probable trends of variables that allow trend claims; precipitation is shown without claims.</p>
+          <p className="chart-disclaimer">Change per decade. Arrows only for robust or probable trends; rain never gets one.</p>
         </aside>
       </div>}
   </section>

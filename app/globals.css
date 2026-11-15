@@ -231,14 +231,14 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .globe-canvas canvas:active { cursor: grabbing; }
 .globe-canvas canvas.clickable { cursor: pointer; } /* globe.gl adds .clickable over countries/states */
 .globe-loading { position: absolute; inset: 0; display: grid; place-items: center; font-size: 14px; color: var(--muted-foreground); }
-.globe-caption { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 0; color: var(--muted-foreground); }
+.globe-caption { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding: 0 0 12px; color: var(--muted-foreground); } /* above the globe */
 .globe-caption > span { display: flex; align-items: center; gap: 8px; }
 .globe-steps { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; padding: 0; list-style: none; font-family: var(--font-mono); font-weight: 700; letter-spacing: .06em; color: var(--foreground); }
 .globe-steps li { display: flex; align-items: center; gap: 6px; }
 .globe-steps .step-arrow { margin-right: 4px; color: var(--muted-foreground); }
 .globe-caption svg { flex-shrink: 0; color: var(--primary); }
 .globe-location { color: var(--foreground); text-transform: none; letter-spacing: 0; font-size: 14px; }
-.globe-legend { display: flex; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.globe-legend { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
 .legend-item { display: flex; gap: 8px; align-items: center; white-space: nowrap; font-family: var(--font-mono); }
 .legend-divider { height: 14px; border-left: 1px solid var(--border); }
 .legend-note { font: 400 14px var(--font-body); letter-spacing: 0; text-transform: none; color: var(--muted-foreground); }
@@ -417,7 +417,9 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .detail-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
 .detail-main, .detail-side { min-width: 0; }
 /* Stats in a horizontal row under the charts: headline card • metrics • robustness criteria */
-.detail-side { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px 20px; align-items: start; padding-top: 16px; border-top: 1px solid var(--border); }
+.detail-side { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 1.4fr); gap: 16px 20px; align-items: start; padding-top: 16px; border-top: 1px solid var(--border); }
+.detail-more { margin-top: 12px; } /* "How it was tested": p, q, detectable trend, relevance, years, sensitivity, method */
+.info-details .detail-metrics { padding: 0 10px 4px; }
 .detail-side .detail-headline { margin-bottom: 0; }
 .detail-block { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
 .detail-block h4, .criteria-title { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--foreground); }
@@ -438,8 +440,6 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .season-list strong { font: 700 14px var(--font-mono); }
 .detail-caveats { margin-top: 16px; }
 .detail-caveats ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.5; color: var(--muted-foreground); }
-.detail-rationale { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; font-size: 12px; line-height: 1.45; color: var(--muted-foreground); }
-.detail-rationale svg { flex-shrink: 0; margin-top: 1px; color: var(--primary); }
 
 /* Series and climatology charts: same strokes as the historical chart, placed by year, labels outside the SVG */
 .series-chart { position: relative; margin-top: 6px; padding: 0 0 22px 52px; }
@@ -531,7 +531,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .projection-warnings { display: grid; grid-template-columns: repeat(auto-fit, minmax(max(160px, calc((100% - 16px) / 3)), 1fr)); gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
 .projection-warnings li { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); font-size: 13px; line-height: 1.45; color: var(--foreground); }
 .projection-warnings li > svg { flex-shrink: 0; margin-top: 2px; color: var(--color-deep-blue); fill: var(--color-neon-yellow); } /* the ⚠ only: same mark as the caveat cards (the ⓘ keeps its own style) */
-.projection-summary { margin-top: 12px; font-size: 17px; line-height: 1.4; color: var(--foreground); }
+.projection-summary { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; font-size: 17px; line-height: 1.4; color: var(--foreground); }
 .projection-summary strong { font: 700 21px/1.2 var(--font-mono); }
 .projection-summary.is-short strong { color: var(--color-martian-red); }
 /* "How it was tested": the numbers behind the summary, folded behind an info icon (native <details>). */
@@ -616,7 +616,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .evidence-table td { font-family: var(--font-mono); }
 
 @media (max-width: 760px) {
-  .detail-grid { grid-template-columns: 1fr; }
+  .detail-grid, .detail-side { grid-template-columns: 1fr; }
   .signal-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .explorer-filters .segmented, .layer-controls .segmented { width: 100%; }
   .signal-foot .verdict-badge, .signal-foot .signal-tag { white-space: normal; } /* narrow cards: badges wrap instead of touching the edge */

@@ -10,8 +10,9 @@ export const GROUP_ICON: Record<VariableResult['group'], LucideIcon> = {
   soil: Sprout,
 }
 
-// One processed variable at the analysis point: headline change in the variable's own scale (trend.display),
-// its 95% interval and the verdict. An arrow appears only when the backend allows a trend claim.
+// One processed variable at the analysis point: headline change in the variable's own scale (trend.display) and the
+// verdict, which already sums up its uncertainty (the likely range is in the detail). An arrow appears only when the
+// backend allows a trend claim.
 export function SignalCard({ result, selected, onSelect }: { result: VariableResult; selected: boolean; onSelect: () => void }) {
   const { trend } = result
   const display = trend.display
@@ -27,7 +28,6 @@ export function SignalCard({ result, selected, onSelect }: { result: VariableRes
       {direction && <Arrow size={16} aria-hidden="true" />}
       {formatSigned(display.slope, digits)}<small>{unitEn(display.unit)}</small>
     </span>
-    <span className="signal-ci">{display.ci95 ? `95% CI ${formatSigned(display.ci95[0], digits)} to ${formatSigned(display.ci95[1], digits)}` : 'Interval not estimable'}</span>
     <span className="signal-foot">
       <VerdictBadge verdict={trend.verdict} />
       {!trend.claimAllowed && <span className="signal-tag">No trend claim</span>}

@@ -13,12 +13,13 @@ import { digitsForUnit, formatNumber, formatPValue, formatSigned, unitEn } from 
 const METHOD_LABEL = { 'ols-hamed-rao': 'OLS slope • block-bootstrap interval', 'sen-mann-kendall': 'Sen slope • Gilbert interval' } as const
 const SCALE_LABEL = { absolute: 'absolute change', 'relative-percent': '% of the 1991–2020 mean', 'percentage-points': 'percentage points' } as const
 
+// The five robustness checks in plain words; the exact tests and thresholds are in the glossary (Term "robustness").
 const CRITERIA: Array<{ key: keyof NonNullable<RobustTrend['criteria']>; label: string }> = [
-  { key: 'R1_qValue', label: 'Significant after multiple-testing control (q < 0.05)' },
-  { key: 'R2_primaryInterval', label: '95% interval of the primary method excludes zero' },
-  { key: 'R3_tfpw', label: 'Holds after trend-free pre-whitening (p < 0.05)' },
-  { key: 'R4_jackknife', label: 'Same sign and significance when any one year is removed' },
-  { key: 'R5_sensitivityWindow', label: 'Same direction in the sensitivity window' },
+  { key: 'R1_qValue', label: 'Still significant with 13 variables tested at once' },
+  { key: 'R2_primaryInterval', label: 'Likely range does not include zero' },
+  { key: 'R3_tfpw', label: 'Holds after removing year-to-year memory' },
+  { key: 'R4_jackknife', label: 'Holds when any single year is dropped' },
+  { key: 'R5_sensitivityWindow', label: 'Same direction over another set of years' },
 ]
 
 type Mode = 'values' | 'anomalies'
@@ -110,33 +111,41 @@ export function VariableDetail({ result, startYear, endYear }: { result: Variabl
         </div>}
       </div>
 
+      {/* Visible: the change, its likely range, the verdict and the five checks in plain words. The numbers behind
+          them (p, q, detectable trend, relevance, years, sensitivity) and the method are in "How it was tested". */}
       <aside className="detail-side">
         <div className="detail-headline">
-          <span className="detail-headline-label">Change per decade • {SCALE_LABEL[display.scale]}</span>
+          <span className="detail-headline-label">Change per decade{display.scale !== 'absolute' ? ` • ${SCALE_LABEL[display.scale]}` : ''}</span>
           <strong>{formatSigned(display.slope, slopeDigits)} <small>{unitEn(display.unit)}</small></strong>
-          <span className="signal-ci">{display.ci95 ? `95% CI ${formatSigned(display.ci95[0], slopeDigits)} to ${formatSigned(display.ci95[1], slopeDigits)}` : 'Interval not estimable'}</span>
+          <span className="signal-ci">{display.ci95 ? <><Term name="ci95">Likely range</Term> {formatSigned(display.ci95[0], slopeDigits)} to {formatSigned(display.ci95[1], slopeDigits)}</> : 'Likely range not estimable'}</span>
           <VerdictBadge verdict={trend.verdict} />
         </div>
-        <div className="detail-metrics">
+
+        <div className="detail-criteria">
+        <h4 className="criteria-title"><ListChecks size={16} /> <span>{trend.criteriaMet} of 5 <Term name="robustness">checks passed</Term></span></h4>
+        {trend.criteria ? <ul className="criteria-list">
+          {CRITERIA.map((criterion) => {
+            const met = trend.criteria?.[criterion.key]
+            const label = criterion.key === 'R5_sensitivityWindow' && trend.sensitivity ? `Same direction over ${trend.sensitivity.startYear}–${trend.sensitivity.endYear}` : criterion.label
+            return <li key={criterion.key} className={met ? 'met' : 'unmet'}>{met ? <Check size={16} aria-label="Met" /> : <X size={16} aria-label="Not met" />}<span>{label}</span></li>
+          })}
+        </ul> : <p className="evidence-muted">The checks need at least 10 complete years.</p>}
+        </div>
+      </aside>
+    </div>
+
+    <details className="info-details detail-more">
+      <summary><Info size={16} /> How it was tested</summary>
+      <div className="detail-metrics">
         <div className="metric-row"><span><Term name="hamedRao">Hamed–Rao p-value</Term></span><strong>{formatPValue(trend.pValueHamedRao)}</strong></div>
         <div className="metric-row"><span><Term name="qValue">q-value (13 variables)</Term></span><strong>{formatPValue(trend.qValue)}</strong></div>
         <div className="metric-row"><span><Term name="minimumDetectable">Smallest detectable trend</Term></span><strong>{formatNumber(trend.minimumDetectablePerDecade, nativeDigits)} {unitEn(result.trendUnit)}</strong></div>
         <div className="metric-row"><span><Term name="relevance">Relevance threshold</Term></span><strong>{profile.relevanceThreshold} {unitEn(profile.displayUnit)}</strong></div>
         <div className="metric-row"><span>Complete years</span><strong>{trend.nYears}</strong></div>
         {trend.sensitivity && <div className="metric-row"><span><Term name="sensitivity">Sensitivity {trend.sensitivity.startYear}–{trend.sensitivity.endYear}</Term></span><strong>{formatSigned(trend.sensitivity.slopePerDecade, nativeDigits)} {unitEn(result.trendUnit)}</strong></div>}
-        </div>
-
-        <div className="detail-criteria">
-        <h4 className="criteria-title"><ListChecks size={16} /> <Term name="robustness">Robustness criteria</Term> • {trend.criteriaMet}/5</h4>
-        {trend.criteria ? <ul className="criteria-list">
-          {CRITERIA.map((criterion) => {
-            const met = trend.criteria?.[criterion.key]
-            return <li key={criterion.key} className={met ? 'met' : 'unmet'}>{met ? <Check size={16} aria-label="Met" /> : <X size={16} aria-label="Not met" />}<span>{criterion.label}</span></li>
-          })}
-        </ul> : <p className="evidence-muted">Criteria need at least 10 complete years.</p>}
-        </div>
-      </aside>
-    </div>
+      </div>
+      <p>{METHOD_LABEL[display.method]}. {profile.rationale.en}</p>
+    </details>
 
     {(trend.warnings.length > 0 || (descriptor?.caveats.en.length ?? 0) > 0) && <div className="caveat-card detail-caveats">
       <AlertTriangle size={16} />
@@ -148,6 +157,5 @@ export function VariableDetail({ result, startYear, endYear }: { result: Variabl
         </ul>
       </div>
     </div>}
-    <p className="detail-rationale"><Info size={16} /><span>{profile.rationale.en}</span></p>
   </article>
 }

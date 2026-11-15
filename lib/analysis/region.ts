@@ -78,15 +78,17 @@ export function estimateCells(bbox: BBox) {
 }
 
 /**
- * MERRA-2 cell centres inside the polygon itself (the map's size guard). A long diagonal state has a box far larger
- * than its grid: Inner Mongolia's box holds 1,551 centres, the state about 500.
- * ponytail: centres only, so cells that merely touch the edge are not counted (the API keeps those too); fine for a guard.
+ * MERRA-2 cells that touch the polygon itself (the map's size guard and the cell count shown before Analyze). A long
+ * diagonal state has a box far larger than its grid: Inner Mongolia's box holds 1,551 cells, the state about 500.
+ * A cell counts when any of 3 × 3 samples (centre, corners, edge midpoints) is inside, like the API, which keeps every
+ * cell with part of it inside. Centres alone undercount narrow states (Puebla: 8 vs the API's 21; 3 × 3 gives 22).
  */
 export function countCellsInside(geometry: PolygonGeometry, bbox: BBox) {
   let count = 0
   for (let lat = Math.ceil(bbox.minLat / CELL.dLat) * CELL.dLat; lat <= bbox.maxLat; lat += CELL.dLat) {
     for (let lon = Math.ceil(bbox.minLon / CELL.dLon) * CELL.dLon; lon <= bbox.maxLon; lon += CELL.dLon) {
-      if (containsPoint(geometry, lon, lat)) count += 1
+      const touches = [0, -1, 1].some((a) => [0, -1, 1].some((b) => containsPoint(geometry, lon + (a * CELL.dLon) / 2, lat + (b * CELL.dLat) / 2)))
+      if (touches) count += 1
     }
   }
   return count

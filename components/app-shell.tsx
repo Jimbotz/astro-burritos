@@ -12,7 +12,14 @@ import { TrendChart } from '@/components/trend-chart'
 import { AreaMap } from '@/components/area-map'
 import { EvidencePanel, ResultsPanel } from '@/components/evidence-panel'
 import { DataSourceBadge } from '@/components/data-source-badge'
+import { SignalExplorer } from '@/components/signal-explorer'
+import { SignalHighlights } from '@/components/signal-highlights'
+import { usePointAnalysis } from '@/hooks/use-earthscope'
+import type { VariableId } from '@/lib/api/v2'
 import type { ClimateAnalysis } from '@/lib/nasa/types'
+
+// The two legacy choices open their equivalent in the API v2 explorer.
+const FOCUS_FOR: Record<Variable, VariableId> = { temperature: 'T2M', precipitation: 'PRECTOTCORR' }
 
 const fetcher = async (url: string): Promise<ClimateAnalysis> => {
   const response = await fetch(url)
@@ -24,6 +31,7 @@ const fetcher = async (url: string): Promise<ClimateAnalysis> => {
 export function AppShell() {
   const [region, setRegion] = useState<Region>({ name: 'Puebla, Mexico', lat: 19.04, lon: -98.20, country: 'MEX', state: 'Puebla' })
   const [variable, setVariable] = useState<Variable>('temperature')
+  const [focus, setFocus] = useState<VariableId>(FOCUS_FOR.temperature)
   const [startYear, setStartYear] = useState(2001)
   const [endYear, setEndYear] = useState(2024)
   const [analysisRequested, setAnalysisRequested] = useState(false)
@@ -33,6 +41,9 @@ export function AppShell() {
   useEffect(() => { if (matchMedia('(prefers-reduced-motion: reduce)').matches) setPaused(true) }, [])
   const params = new URLSearchParams({ latitude: String(region.lat), longitude: String(region.lon), startYear: String(startYear), endYear: String(endYear), variable })
   const { data: analysis, error, isLoading, mutate } = useSWR<ClimateAnalysis, Error>(analysisRequested ? `/api/series?${params.toString()}` : null, fetcher, { revalidateOnFocus: false })
+  // Same request trigger for every processed variable (API v2); the legacy series above is unchanged.
+  const point = usePointAnalysis(analysisRequested ? { latitude: region.lat, longitude: region.lon, startYear, endYear } : null)
+  const requesting = isLoading || point.isLoading
 
   // Every selection (globe click or selects) stops the rotation so the chosen place stays in view;
   // the play button resumes it.
@@ -71,12 +82,12 @@ export function AppShell() {
           <p className="intro-copy">Explore historical climate observations for a place you care about.</p>
 
           <LocationSelector value={region} onChange={selectRegion} />
-          <VariableSelector value={variable} onChange={(next) => { setVariable(next); setAnalysisRequested(false) }} />
+          <VariableSelector value={variable} onChange={(next) => { setVariable(next); setFocus(FOCUS_FOR[next]); setAnalysisRequested(false) }} />
           <PeriodPicker startYear={startYear} endYear={endYear} onStartChange={(year) => { setStartYear(year); setAnalysisRequested(false) }} onEndChange={(year) => { setEndYear(year); setAnalysisRequested(false) }} />
 
           <div className="setup-actions">
-            <button className="analyze-button" type="button" onClick={analyze} disabled={isLoading}><Sparkles size={16} /> {isLoading ? 'Requesting…' : 'Analyze region'} <span>→</span></button>
-            <div className="setup-note"><Info size={16} /><span>Analyze requests the selected monthly series from NASA POWER. Results are descriptive, not forecasts.</span></div>
+            <button className="analyze-button" type="button" onClick={analyze} disabled={requesting}><Sparkles size={16} /> {requesting ? 'Requesting…' : 'Analyze region'} <span>→</span></button>
+            <div className="setup-note"><Info size={16} /><span>Analyze requests the selected monthly series and every processed variable from NASA POWER. Results are descriptive, not forecasts.</span></div>
             <div className="panel-footnote"><span className="step-number">01</span><span>SELECT LOCATION &amp; CLIMATE VARIABLE</span></div>
           </div>
         </aside>
@@ -89,14 +100,18 @@ export function AppShell() {
             <div className="globe-caption"><ol className="globe-steps" aria-label="How to use the globe"><li><Rotate3d size={16} /> DRAG TO ROTATE</li><li><ArrowRight size={16} className="step-arrow" aria-hidden="true" /><ZoomIn size={16} /> SCROLL TO ZOOM</li><li><ArrowRight size={16} className="step-arrow" aria-hidden="true" /><MousePointerClick size={16} /> CLICK A COUNTRY</li><li><ArrowRight size={16} className="step-arrow" aria-hidden="true" /><MapPinned size={16} /> THEN A STATE</li></ol><span className="globe-location"><MapPin size={16} /> {region.name}</span></div>
             <div className="globe-legend"><span className="legend-item"><span className="legend-point" /> SELECTED LOCATION</span><span className="legend-divider" /><span className="legend-note">No data overlays are shown until observations are verified.</span></div>
           </div>
-          <AreaMap region={region} />
+          <AreaMap region={region} startYear={startYear} endYear={endYear} preferredVariable={FOCUS_FOR[variable]} />
           <TrendChart variable={variable} startYear={startYear} endYear={endYear} analysisRequested={analysisRequested} analysis={analysis} error={error} isLoading={isLoading} onRetry={() => mutate()} />
+          <SignalExplorer point={point.data} isLoading={point.isLoading} error={point.error} analysisRequested={analysisRequested} focus={focus} onFocus={setFocus} onRetry={() => point.mutate()} startYear={startYear} endYear={endYear} />
         </section>
 
-        <ResultsPanel region={region} variable={variable} startYear={startYear} endYear={endYear} analysisRequested={analysisRequested} analysis={analysis} error={error} isLoading={isLoading} />
+        <div className="side-column">
+          <ResultsPanel region={region} variable={variable} startYear={startYear} endYear={endYear} analysisRequested={analysisRequested} analysis={analysis} error={error} isLoading={isLoading} />
+          <SignalHighlights point={point.data} isLoading={point.isLoading} error={point.error} onFocus={setFocus} />
+        </div>
       </section>
 
-      <EvidencePanel variable={variable} analysis={analysis} />
+      <EvidencePanel variable={variable} analysis={analysis} point={point.data} />
 
       <footer className="app-footer"><DataSourceBadge /><span className="footer-center">Scientific evidence before visual certainty. • Earth imagery: NASA Blue Marble • Boundaries: Natural Earth</span><a href="https://power.larc.nasa.gov/" target="_blank" rel="noreferrer">NASA POWER project <ArrowUpRight size={16} /></a></footer>
     </main>

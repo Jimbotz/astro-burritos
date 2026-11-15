@@ -14,7 +14,7 @@
       position: absolute; inset: 0; font-family: "Overpass", sans-serif; color: var(--deep-blue);
     }
 
-    /* Captions: one per narration line, bottom-centered, inside title-safe. */
+    /* Captions: the voice-over in phrases, bottom-centered, inside title-safe. */
     .cap { position: absolute; left: 0; right: 0; bottom: 84px; display: flex; justify-content: center; z-index: 5; }
     .cap > span {
       display: block; max-width: 1480px; padding: 18px 40px 14px; border-radius: 16px; text-align: center;
@@ -22,29 +22,23 @@
       font: 600 46px/1.25 "Overpass", sans-serif; box-shadow: 0 10px 40px color-mix(in srgb, var(--deep-blue) 35%, transparent);
     }
 
-    /* Callouts over the footage */
-    .card { position: absolute; z-index: 4; }
-    #rate { left: 0; right: 0; top: 600px; display: flex; justify-content: center; }
-    #rate > div {
-      padding: 22px 44px 18px; border-radius: 20px; background: var(--white); text-align: center;
-      border: 4px solid var(--neon-blue); box-shadow: 0 16px 50px color-mix(in srgb, var(--deep-blue) 30%, transparent);
-    }
-    #rate-value { display: block; font: 500 84px/1 "Fira Code", monospace; color: var(--green); }
-    #rate-label { display: block; margin-top: 10px; font: 600 30px/1.2 "Overpass", sans-serif; color: var(--deep-blue); }
-    .ring { position: absolute; z-index: 4; border: 5px solid var(--neon-blue); border-radius: 14px; box-shadow: 0 0 0 6px color-mix(in srgb, var(--neon-blue) 22%, transparent); }
-    #ring-puebla { left: 34px; top: 90px; width: 1852px; height: 96px; }
-    #ring-oaxaca { left: 34px; top: 90px; width: 1852px; height: 126px; }
-    #ring-blocked { left: 996px; top: 746px; width: 846px; height: 88px; }
-    #robust { right: 100px; top: 760px; }
-    #robust > span {
-      display: block; padding: 16px 30px 12px; border-radius: 999px; background: var(--deep-blue); color: var(--white);
-      font: 700 34px/1.2 "Overpass", sans-serif;
-    }
+    /* Highlight frames over the footage, placed from the recorded frames (video px). */
+    .ring { position: absolute; z-index: 4; }
+    .ring > i { position: absolute; inset: 0; border: 5px solid var(--neon-blue); border-radius: 14px; box-shadow: 0 0 0 6px color-mix(in srgb, var(--neon-blue) 22%, transparent); }
+    .ring.mark > i { border-width: 4px; border-radius: 8px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--neon-blue) 22%, transparent); }
 
     /* Click pulses: neon-yellow ring with a deep-blue outline (brand rule for yellow on light surfaces). */
     .pulse { position: absolute; z-index: 6; width: 0; height: 0; }
     .pulse > i { position: absolute; left: -36px; top: -36px; width: 72px; height: 72px; border-radius: 50%;
       border: 7px solid var(--neon-yellow); box-shadow: 0 0 0 3px var(--deep-blue), inset 0 0 0 3px var(--deep-blue); }
+
+    /* Intro card over the globe: the challenge, the question, the place. */
+    #intro { position: absolute; inset: 0; z-index: 7; }
+    #intro-bg { position: absolute; inset: 0; background: linear-gradient(90deg, color-mix(in srgb, var(--deep-blue) 94%, transparent) 0%, color-mix(in srgb, var(--deep-blue) 80%, transparent) 55%, color-mix(in srgb, var(--deep-blue) 20%, transparent) 100%); }
+    #intro-body { position: absolute; left: 160px; top: 230px; width: 1180px; color: var(--white); }
+    #intro-kicker { display: inline-block; padding: 10px 22px 6px; border-radius: 999px; background: var(--neon-yellow); color: var(--deep-blue); font: 700 28px/1.2 "Overpass", sans-serif; }
+    #intro-title { display: block; margin-top: 30px; font: 900 88px/1.04 "Fira Sans", sans-serif; }
+    #intro-place { display: block; margin-top: 30px; font: 400 40px/1.3 "Overpass", sans-serif; color: color-mix(in srgb, var(--white) 90%, transparent); }
 
     /* End card */
     #endcard { position: absolute; inset: 0; z-index: 8; }
@@ -57,23 +51,12 @@
     #end-url { display: inline-block; margin-top: 40px; padding: 16px 32px 12px; border-radius: 999px; background: var(--neon-yellow); color: var(--deep-blue); font: 500 40px/1 "Fira Code", monospace; }
     #end-foot { position: absolute; left: 192px; right: 192px; bottom: 120px; color: color-mix(in srgb, var(--white) 80%, transparent); font: 400 28px/1.45 "Overpass", sans-serif; }
     #end-foot b { color: var(--white); font-weight: 600; }
-
-    /* Intro card over the globe: the challenge and the problem. */
-    #intro { position: absolute; inset: 0; z-index: 7; }
-    #intro-bg { position: absolute; inset: 0; background: linear-gradient(90deg, color-mix(in srgb, var(--deep-blue) 94%, transparent) 0%, color-mix(in srgb, var(--deep-blue) 80%, transparent) 55%, color-mix(in srgb, var(--deep-blue) 20%, transparent) 100%); }
-    #intro-body { position: absolute; left: 160px; top: 220px; width: 1100px; color: var(--white); }
-    #intro-kicker { display: inline-block; padding: 10px 22px 6px; border-radius: 999px; background: var(--neon-yellow); color: var(--deep-blue); font: 700 28px/1.2 "Overpass", sans-serif; }
-    #intro-title { display: block; margin-top: 28px; font: 900 92px/1.02 "Fira Sans", sans-serif; }
-    #intro-problem { display: block; margin-top: 30px; font: 400 42px/1.3 "Overpass", sans-serif; color: color-mix(in srgb, var(--white) 90%, transparent); }
-
-    .question { position: absolute; right: 48px; top: 36px; z-index: 6; max-width: 1060px; }
-    .question > div { padding: 18px 30px 14px; border-radius: 18px; background: var(--white); border: 4px solid var(--neon-blue); box-shadow: 0 14px 44px color-mix(in srgb, var(--deep-blue) 30%, transparent); }
-    .question em { display: block; font: 700 22px/1.2 "Fira Code", monospace; font-style: normal; color: var(--neon-blue); letter-spacing: 0.06em; }
-    .question span { display: block; margin-top: 6px; font: 700 36px/1.2 "Overpass", sans-serif; color: var(--deep-blue); }
   </style>
 
-  <!-- THE SCRIPT: every on-screen line is a variable here. Edit the defaults (or Studio's Variables panel) to change copy.
-       Numbers: NASA POWER cell over Puebla, 2001–2024, as the app showed them on 2026-11-15. -->
+  <!-- THE SCRIPT: every on-screen line is a variable here; captions follow the voice-over phrase by phrase.
+       Numbers: NASA POWER cell of Tehuacán, Puebla (18.46, -97.39), 2001–2024, as the app showed them on 2026-11-15.
+       Timing: each caption, ring and pulse carries its own data-start/data-duration (set from the voice-over's word times);
+       the script below reads them. -->
   <div
     id="root"
     data-composition-id="overlay"
@@ -81,97 +64,103 @@
     data-height="1080"
     data-composition-variables='[
       {"id":"introKicker","type":"string","label":"Challenge","default":"NASA Space Apps 2026 • Be an Earth System Trend Detective!"},
-      {"id":"introTitle","type":"string","label":"Intro title","default":"Which climate signals are really changing?"},
-      {"id":"introProblem","type":"string","label":"Problem","default":"Climate data are noisy. EarthScope turns NASA data into trends you can check."},
-      {"id":"cap2","type":"string","label":"3.5–6.5 s","default":"Pick a place and a variable, then press Analyze."},
-      {"id":"cap3","type":"string","label":"6.5–9.5 s","default":"Where: every NASA POWER cell of the state, colored by its recent anomaly."},
-      {"id":"cap4","type":"string","label":"9.5–12.5 s","default":"When: warm nights +5.5 pp/decade, coldest night +1.1 °C/decade. Hot days: no trend detectable."},
-      {"id":"cap5","type":"string","label":"12.5–14.5 s","default":"A trend is claimed only when it passes five robustness checks."},
-      {"id":"cap6","type":"string","label":"14.5–18.5 s","default":"The air keeps warming, but humidity, soil and rain show no persistent decline."},
-      {"id":"cap7","type":"string","label":"18.5–21.5 s","default":"A second NASA rain record and a second place test every signal."},
-      {"id":"cap8","type":"string","label":"21.5–24 s","default":"The projection is exploratory, and it is blocked when it fails its back-test."},
-      {"id":"cap9","type":"string","label":"24–26 s","default":"Every number comes with its source, method and limits."},
-      {"id":"q2","type":"string","label":"Question 2","default":"Where and when are extreme hot days and nights intensifying?"},
-      {"id":"q1","type":"string","label":"Question 1","default":"Rising atmospheric demand and falling water availability?"},
+      {"id":"introTitle","type":"string","label":"VO 1","default":"Where is climate turning into risk for water and heat?"},
+      {"id":"introPlace","type":"string","label":"Place","default":"Tehuacán, Puebla • NASA POWER data, 2001–2024"},
+      {"id":"cap2a","type":"string","label":"VO 2a","default":"Tehuacán recorded drought five years in a row."},
+      {"id":"cap2b","type":"string","label":"VO 2b","default":"In 2023, all four water-stress signals crossed their thresholds."},
+      {"id":"cap3a","type":"string","label":"VO 3a","default":"Unusually hot days now fill almost a third of the year,"},
+      {"id":"cap3b","type":"string","label":"VO 3b","default":"where more than 600,000 people live."},
+      {"id":"cap4a","type":"string","label":"VO 4a","default":"No claim without evidence: five statistical checks,"},
+      {"id":"cap4b","type":"string","label":"VO 4b","default":"ground stations, and two NASA rain records."},
       {"id":"endTitle","type":"string","label":"End title","default":"EarthScope"},
-      {"id":"endTagline","type":"string","label":"End tagline","default":"Explore the hidden climate signals"},
-      {"id":"endLine","type":"string","label":"26–30 s","default":"Find the signal, understand its story."},
+      {"id":"endTagline","type":"string","label":"VO 5","default":"Find the signal, plan for the risk."},
+      {"id":"endLine","type":"string","label":"End line","default":"Water and heat signals from NASA data, tested before they are claimed."},
       {"id":"endUrl","type":"string","label":"URL","default":"earthscope-chi.vercel.app"},
       {"id":"endCredits","type":"string","label":"Credits","default":"NASA Space Apps Challenge 2026 • Be an Earth System Trend Detective! • Team astro-burritos"},
-      {"id":"endDisclaimer","type":"string","label":"Disclaimer","default":"Independent Space Apps project, not an official NASA product • Data: NASA POWER (MERRA-2, GPM IMERG) • Imagery: NASA Blue Marble"}
+      {"id":"endDisclaimer","type":"string","label":"Disclaimer","default":"Independent Space Apps project, not an official NASA product • Data: NASA POWER (MERRA-2, GPM IMERG), INEGI, CONAGUA/SMN • Imagery: NASA Blue Marble"}
     ]'
   >
-    <div id="intro" class="clip" data-start="0" data-duration="3.5" data-track-index="5">
+    <div id="intro" class="clip" data-start="0" data-duration="3.6" data-track-index="5">
       <div id="intro-bg"></div>
       <div id="intro-body">
         <span id="intro-kicker" data-var-text="introKicker">NASA Space Apps 2026 • Be an Earth System Trend Detective!</span>
-        <span id="intro-title" data-var-text="introTitle">Which climate signals are really changing?</span>
-        <span id="intro-problem" data-var-text="introProblem">Climate data are noisy. EarthScope turns NASA data into trends you can check.</span>
+        <span id="intro-title" data-var-text="introTitle">Where is climate turning into risk for water and heat?</span>
+        <span id="intro-place" data-var-text="introPlace">Tehuacán, Puebla • NASA POWER data, 2001–2024</span>
       </div>
     </div>
 
-    <div id="cap2" class="cap clip" data-start="3.5" data-duration="3" data-track-index="2"><span data-var-text="cap2">Pick a place and a variable, then press Analyze.</span></div>
-    <div id="cap3" class="cap clip" data-start="6.5" data-duration="3" data-track-index="2"><span data-var-text="cap3">Where: every NASA POWER cell of the state, colored by its recent anomaly.</span></div>
-    <div id="cap4" class="cap clip" data-start="9.5" data-duration="3" data-track-index="2"><span data-var-text="cap4">When: warm nights +5.5 pp/decade, coldest night +1.1 °C/decade. Hot days: no trend detectable.</span></div>
-    <div id="cap5" class="cap clip" data-start="12.5" data-duration="2" data-track-index="2"><span data-var-text="cap5">A trend is claimed only when it passes five robustness checks.</span></div>
-    <div id="cap6" class="cap clip" data-start="14.5" data-duration="4" data-track-index="2"><span data-var-text="cap6">The air keeps warming, but humidity, soil and rain show no persistent decline.</span></div>
-    <div id="cap7" class="cap clip" data-start="18.5" data-duration="3" data-track-index="2"><span data-var-text="cap7">A second NASA rain record and a second place test every signal.</span></div>
-    <div id="cap8" class="cap clip" data-start="21.5" data-duration="2.5" data-track-index="2"><span data-var-text="cap8">The projection is exploratory, and it is blocked when it fails its back-test.</span></div>
-    <div id="cap9" class="cap clip" data-start="24" data-duration="2" data-track-index="2"><span data-var-text="cap9">Every number comes with its source, method and limits.</span></div>
+    <div id="cap2a" class="cap clip" data-start="3.72" data-duration="3.13" data-track-index="2"><span data-var-text="cap2a">Tehuacán recorded drought five years in a row.</span></div>
+    <div id="cap2b" class="cap clip" data-start="6.87" data-duration="5.13" data-track-index="2"><span data-var-text="cap2b">In 2023, all four water-stress signals crossed their thresholds.</span></div>
+    <div id="cap3a" class="cap clip" data-start="12.17" data-duration="3.55" data-track-index="2"><span data-var-text="cap3a">Unusually hot days now fill almost a third of the year,</span></div>
+    <div id="cap3b" class="cap clip" data-start="15.74" data-duration="2.56" data-track-index="2"><span data-var-text="cap3b">where more than 600,000 people live.</span></div>
+    <div id="cap4a" class="cap clip" data-start="18.48" data-duration="3.74" data-track-index="2"><span data-var-text="cap4a">No claim without evidence: five statistical checks,</span></div>
+    <div id="cap4b" class="cap clip" data-start="22.24" data-duration="3.66" data-track-index="2"><span data-var-text="cap4b">ground stations, and two NASA rain records.</span></div>
 
+    <!-- Water: the drought row, then "2023" in each of the four components. -->
+    <div id="ring-drought" class="ring clip" style="left: 96px; top: 722px; width: 930px; height: 66px" data-start="3.9" data-duration="2.95" data-track-index="3"><i></i></div>
+    <div id="mark-2023-a" class="ring mark clip" style="left: 788px; top: 563px; width: 50px; height: 32px" data-start="7.0" data-duration="5.0" data-track-index="3"><i></i></div>
+    <div id="mark-2023-b" class="ring mark clip" style="left: 795px; top: 626px; width: 50px; height: 32px" data-start="7.15" data-duration="4.85" data-track-index="3"><i></i></div>
+    <div id="mark-2023-c" class="ring mark clip" style="left: 849px; top: 691px; width: 50px; height: 32px" data-start="7.3" data-duration="4.7" data-track-index="3"><i></i></div>
+    <div id="mark-2023-d" class="ring mark clip" style="left: 911px; top: 754px; width: 50px; height: 32px" data-start="7.45" data-duration="4.55" data-track-index="3"><i></i></div>
+    <!-- Heat: warm days (30.9 % of days), then the exposed population. -->
+    <div id="ring-warmdays" class="ring clip" style="left: 426px; top: 378px; width: 358px; height: 271px" data-start="14.7" data-duration="1.05" data-track-index="3"><i></i></div>
+    <div id="ring-exposure" class="ring clip" style="left: 663px; top: 174px; width: 593px; height: 154px" data-start="15.8" data-duration="2.5" data-track-index="3"><i></i></div>
+    <!-- Research: the five checks, the station, the two rain records. -->
+    <div id="ring-checks" class="ring clip" style="left: 522px; top: 418px; width: 400px; height: 192px" data-start="18.6" data-duration="3.45" data-track-index="3"><i></i></div>
+    <div id="ring-station" class="ring clip" style="left: 70px; top: 389px; width: 1780px; height: 102px" data-start="22.15" data-duration="1.2" data-track-index="3"><i></i></div>
+    <div id="ring-rain" class="ring clip" style="left: 70px; top: 46px; width: 864px; height: 90px" data-start="23.5" data-duration="2.4" data-track-index="3"><i></i></div>
 
-    <div id="q2box" class="question clip" data-start="6.5" data-duration="8" data-track-index="6"><div><em>QUESTION 2</em><span data-var-text="q2">Where and when are extreme hot days and nights intensifying?</span></div></div>
-    <div id="q1box" class="question clip" data-start="14.5" data-duration="4" data-track-index="6"><div><em>QUESTION 1</em><span data-var-text="q1">Rising atmospheric demand and falling water availability?</span></div></div>
+    <!-- Click pulse at the logged click (screencast CSS px × 1.2), at clip start + (click time − media start). -->
+    <div id="pulse-heat" class="pulse clip" style="left: 1405px; top: 283px" data-start="12.26" data-duration="0.8" data-track-index="4"><i></i></div>
 
-    <!-- Click pulses at the logged click positions (screencast CSS px × 1.2 → 1920×1080). -->
-    <div id="pulse-var" class="pulse clip" style="left: 810px; top: 648px" data-start="4.03" data-duration="0.8" data-track-index="4"><i></i></div>
-    <div id="pulse-analyze" class="pulse clip" style="left: 1510px; top: 720px" data-start="5.2" data-duration="0.8" data-track-index="4"><i></i></div>
-    <div id="pulse-temp" class="pulse clip" style="left: 1243px; top: 221px" data-start="10.22" data-duration="0.8" data-track-index="4"><i></i></div>
-    <div id="pulse-soil" class="pulse clip" style="left: 1553px; top: 221px" data-start="16.12" data-duration="0.8" data-track-index="4"><i></i></div>
-    <div id="pulse-rain" class="pulse clip" style="left: 1367px; top: 221px" data-start="17.96" data-duration="0.8" data-track-index="4"><i></i></div>
-
-    <div id="endcard" class="clip" data-start="26" data-duration="4" data-track-index="5">
+    <div id="endcard" class="clip" data-start="25.95" data-duration="4.05" data-track-index="5">
       <div id="end-bg"></div>
       <img id="end-logo" src="assets/brand/space-apps-logo-color-white.svg" alt="NASA Space Apps Challenge" />
       <div id="end-body">
         <span id="end-title" data-var-text="endTitle">EarthScope</span>
-        <span id="end-tagline" data-var-text="endTagline">Explore the hidden climate signals</span>
-        <span id="end-line" data-var-text="endLine">Find the signal, understand its story.</span>
+        <span id="end-tagline" data-var-text="endTagline">Find the signal, plan for the risk.</span>
+        <span id="end-line" data-var-text="endLine">Water and heat signals from NASA data, tested before they are claimed.</span>
         <span id="end-url" data-var-text="endUrl">earthscope-chi.vercel.app</span>
       </div>
-      <div id="end-foot"><b data-var-text="endCredits">NASA Space Apps Challenge 2026 • Be an Earth System Trend Detective! • Team astro-burritos</b><br /><span data-var-text="endDisclaimer">Independent Space Apps project, not an official NASA product • Data: NASA POWER (MERRA-2, GPM IMERG) • Imagery: NASA Blue Marble</span></div>
+      <div id="end-foot"><b data-var-text="endCredits">NASA Space Apps Challenge 2026 • Be an Earth System Trend Detective! • Team astro-burritos</b><br /><span data-var-text="endDisclaimer">Independent Space Apps project, not an official NASA product • Data: NASA POWER (MERRA-2, GPM IMERG), INEGI, CONAGUA/SMN • Imagery: NASA Blue Marble</span></div>
     </div>
   </div>
 
   <script>
     const tl = gsap.timeline({ paused: true });
     const ease = "power3.out";
-    // Intro: scrim, then the challenge, the question and the problem.
+    const root = document.querySelector('[data-composition-id="overlay"]');
+    const span = (el) => [+el.dataset.start, +el.dataset.duration];
+    // Intro: scrim, then the challenge, the question (said by the voice) and the place.
     tl.fromTo("#intro-bg", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0);
-    tl.fromTo("#intro-kicker", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35, ease }, 0.15);
-    tl.fromTo("#intro-title", { opacity: 0, y: 36 }, { opacity: 1, y: 0, duration: 0.45, ease }, 0.35);
-    tl.fromTo("#intro-problem", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease }, 0.9);
-    tl.to("#intro", { opacity: 0, duration: 0.3, ease: "power1.in" }, 3.2);
-    // Captions rise in and fade out just before their shot ends.
-    [["cap2", 3.5, 3], ["cap3", 6.5, 3], ["cap4", 9.5, 3], ["cap5", 12.5, 2], ["cap6", 14.5, 4], ["cap7", 18.5, 3], ["cap8", 21.5, 2.5], ["cap9", 24, 2]].forEach(([id, s, d]) => {
-      tl.fromTo(`#${id} > span`, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.3, ease }, s + 0.05);
-      tl.to(`#${id} > span`, { opacity: 0, duration: 0.2, ease: "power1.in" }, s + d - 0.22);
+    tl.fromTo("#intro-kicker", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35, ease }, 0.1);
+    tl.fromTo("#intro-title", { opacity: 0, y: 36 }, { opacity: 1, y: 0, duration: 0.45, ease }, 0.2);
+    tl.fromTo("#intro-place", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease }, 1.2);
+    tl.to("#intro", { opacity: 0, duration: 0.3, ease: "power1.in" }, 3.3);
+    // Captions rise in and fade out just before their end; timing comes from each element's own attributes.
+    root.querySelectorAll(".cap").forEach((el) => {
+      const [s, d] = span(el);
+      tl.fromTo(el.firstElementChild, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.25, ease }, s);
+      tl.to(el.firstElementChild, { opacity: 0, duration: 0.18, ease: "power1.in" }, s + d - 0.2);
     });
-    [["q2box", 6.5, 8], ["q1box", 14.5, 4]].forEach(([id, s, d]) => {
-      tl.fromTo(`#${id} > div`, { opacity: 0, y: -24 }, { opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.4)" }, s + 0.1);
-      tl.to(`#${id} > div`, { opacity: 0, duration: 0.2 }, s + d - 0.22);
+    root.querySelectorAll(".ring").forEach((el) => {
+      const [s, d] = span(el);
+      tl.fromTo(el.firstElementChild, { opacity: 0, scale: 1.08 }, { opacity: 1, scale: 1, duration: 0.3, ease }, s);
+      tl.to(el.firstElementChild, { opacity: 0, duration: 0.18 }, s + d - 0.2);
     });
-    [["pulse-var", 4.03], ["pulse-analyze", 5.2], ["pulse-temp", 10.22], ["pulse-soil", 16.12], ["pulse-rain", 17.96]].forEach(([id, s]) => {
-      tl.fromTo(`#${id} > i`, { scale: 0.35, opacity: 1 }, { scale: 1.5, opacity: 0, duration: 0.75, ease: "power2.out" }, s);
+    root.querySelectorAll(".pulse").forEach((el) => {
+      const [s, d] = span(el);
+      tl.fromTo(el.firstElementChild, { scale: 0.35, opacity: 1 }, { scale: 1.5, opacity: 0, duration: Math.min(0.75, d - 0.05), ease: "power2.out" }, s);
     });
-    // End card: the band wipes up, then the brand lines arrive in order.
-    tl.fromTo("#end-bg", { yPercent: 100 }, { yPercent: 0, duration: 0.35, ease: "power4.out" }, 26);
-    tl.fromTo("#end-logo", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 26.15);
-    tl.fromTo("#end-title", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.4, ease }, 26.15);
-    tl.fromTo("#end-tagline", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.35, ease }, 26.3);
-    tl.fromTo("#end-line", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.35, ease }, 26.45);
-    tl.fromTo("#end-url", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.6)" }, 26.6);
-    tl.fromTo("#end-foot", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 26.7);
+    // End card: the band wipes up as the voice says "EarthScope", the tagline lands on "find the signal".
+    const end = +document.getElementById("endcard").dataset.start;
+    tl.fromTo("#end-bg", { yPercent: 100 }, { yPercent: 0, duration: 0.35, ease: "power4.out" }, end);
+    tl.fromTo("#end-logo", { opacity: 0 }, { opacity: 1, duration: 0.3 }, end + 0.15);
+    tl.fromTo("#end-title", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.4, ease }, end + 0.15);
+    tl.fromTo("#end-tagline", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.35, ease }, end + 0.95);
+    tl.fromTo("#end-line", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.35, ease }, end + 1.3);
+    tl.fromTo("#end-url", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.6)" }, end + 1.6);
+    tl.fromTo("#end-foot", { opacity: 0 }, { opacity: 1, duration: 0.3 }, end + 1.8);
     window.__timelines["overlay"] = tl;
   </script>
 </template>

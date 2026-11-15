@@ -13,17 +13,24 @@
     </style>
   </head>
   <body>
-    <!-- Real footage of the EarthScope app (screencast of main at 8034bb0, live NASA POWER data). Script text lives in compositions/overlay.html. -->
+    <!-- Real footage of the EarthScope app at Tehuacán, Puebla (screencast of a local production build of main at 5ac9cd2,
+         live NASA POWER data). Each clip is a whole take from recording/; data-media-start is its in-point.
+         Voice-over: the team's recording, one clip per sentence (recording/build-voice.sh). Script text: compositions/overlay.html. -->
     <div id="root" data-composition-id="main" data-start="0" data-duration="30" data-width="1920" data-height="1080">
-      <video id="v1-globe" class="clip" src="assets/clips/s1-globe.mp4" data-start="0" data-duration="3.5" data-track-index="0" muted playsinline></video>
-      <video id="v2-query" class="clip" src="assets/clips/s2-query.mp4" data-start="3.5" data-duration="3" data-track-index="0" muted playsinline></video>
-      <video id="v3-map" class="clip" src="assets/clips/s3-map.mp4" data-start="6.5" data-duration="3" data-track-index="0" muted playsinline></video>
-      <video id="v5-signals" class="clip" src="assets/clips/s5-signals.mp4" data-start="9.5" data-duration="3" data-track-index="0" muted playsinline></video>
-      <video id="v4-results" class="clip" src="assets/clips/s4-results.mp4" data-start="12.5" data-duration="2" data-track-index="0" muted playsinline></video>
-      <video id="v6-water" class="clip" src="assets/clips/s6-water.mp4" data-start="14.5" data-duration="4" data-track-index="0" muted playsinline></video>
-      <video id="v7-crosscheck" class="clip" src="assets/clips/s7-crosscheck.mp4" data-start="18.5" data-duration="3" data-track-index="0" muted playsinline></video>
-      <video id="v8-projection" class="clip" src="assets/clips/s8-projection.mp4" data-start="21.5" data-duration="2.5" data-track-index="0" muted playsinline></video>
-      <video id="v9-evidence" class="clip" src="assets/clips/s9-evidence.mp4" data-start="24" data-duration="2" data-track-index="0" muted playsinline></video>
+      <video id="v1-globe" class="clip" src="assets/clips/s1-globe.mp4" data-start="0" data-duration="3.6" data-media-start="0.3" data-track-index="0" muted playsinline></video>
+      <video id="v2-water" class="clip" src="assets/clips/s2-water.mp4" data-start="3.6" data-duration="8.45" data-media-start="0.5" data-track-index="0" muted playsinline></video>
+      <video id="v3-heat" class="clip" src="assets/clips/s3-heat.mp4" data-start="12.05" data-duration="6.3" data-media-start="0.75" data-track-index="0" muted playsinline></video>
+      <video id="v4a-checks" class="clip" src="assets/clips/s4a-checks.mp4" data-start="18.35" data-duration="3.75" data-media-start="0.5" data-track-index="0" muted playsinline></video>
+      <video id="v4b-station" class="clip" src="assets/clips/s4b-station.mp4" data-start="22.1" data-duration="1.3" data-media-start="0.3" data-track-index="0" muted playsinline></video>
+      <video id="v4c-rain" class="clip" src="assets/clips/s4c-rain.mp4" data-start="23.4" data-duration="2.55" data-media-start="0.5" data-track-index="0" muted playsinline></video>
+
+      <!-- Voice-over, one sentence per clip; the gaps between them are the breaths. -->
+      <audio id="vo1" class="clip" src="assets/voice/vo-1.wav" data-start="0.2" data-duration="3.22" data-track-index="2"></audio>
+      <audio id="vo2" class="clip" src="assets/voice/vo-2.wav" data-start="3.72" data-duration="8.15" data-track-index="2"></audio>
+      <audio id="vo3" class="clip" src="assets/voice/vo-3.wav" data-start="12.17" data-duration="6.01" data-track-index="2"></audio>
+      <audio id="vo4" class="clip" src="assets/voice/vo-4.wav" data-start="18.48" data-duration="7.28" data-track-index="2"></audio>
+      <audio id="vo5" class="clip" src="assets/voice/vo-5.wav" data-start="26.06" data-duration="3.12" data-track-index="2"></audio>
+
       <div
         id="overlay"
         data-composition-id="overlay"

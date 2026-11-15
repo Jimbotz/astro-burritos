@@ -1,0 +1,15 @@
+# LaTeX build files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.log
+*.out
+*.run.xml
+*.toc
+*.lof
+*.lot
+biber.out
+# Only the latest compiled report is kept
+*.pdf
+!EarthScope_Report_v2.pdf

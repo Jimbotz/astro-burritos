@@ -2,15 +2,15 @@
 
 import { useState, useSyncExternalStore } from 'react'
 import Image from 'next/image'
-import { ArrowRight, ArrowUpRight, Globe, Info, LoaderCircle, MapPin, MapPinned, MousePointerClick, Navigation, Pause, Play, Rotate3d, RotateCcw, Sparkles, ZoomIn } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, Clock, Globe, Info, LoaderCircle, MapPin, MapPinned, MousePointerClick, Navigation, Pause, Play, Rotate3d, RotateCcw, Sparkles, ZoomIn } from 'lucide-react'
 import { EarthGlobe } from '@/components/earth-globe'
 import { PanelHeader } from '@/components/panel-header'
 import { LocationSelector, type Region } from '@/components/location-selector'
 import { VariableSelector } from '@/components/variable-selector'
 import { PeriodPicker } from '@/components/period-picker'
 import { PointTrendChart } from '@/components/trend-chart'
-import { AreaMap } from '@/components/area-map'
-import { MapLayerControls, type LayerKind } from '@/components/map-layer'
+import { AreaMap, useGridArea } from '@/components/area-map'
+import { MapLayerControls, gridWaitText, type LayerKind } from '@/components/map-layer'
 import { EvidencePanel, ResultsPanel } from '@/components/evidence-panel'
 import { ResultHeadline } from '@/components/result-headline'
 import { DataSourceBadge } from '@/components/data-source-badge'
@@ -81,22 +81,25 @@ export function AppShell() {
     setPaused(true)
   }
 
-  // The results sit two screens below Step 1, so Analyze brings them into view (not on a shared link's first load).
-  const showResults = () => document.getElementById('results')?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
+  // Analyze brings Step 3 into view, where the grid loads with its progress (not on a shared link's first load).
+  const showMap = () => document.querySelector('.area-panel')?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
 
   function analyze() {
     setAnalysisRequested(true)
     window.history.replaceState(null, '', encodeQuery({ region, variable, startYear, endYear, layer: layerKind }))
-    showResults()
+    showMap()
   }
 
   function runExample(example: (typeof EXAMPLES)[number]) {
     apply({ region: example.region, variable: example.variable, startYear: 2001, endYear: 2024, layer: example.kind })
-    showResults()
+    showMap()
   }
 
   // Results stay blurred until Analyze and pulse while the point request runs. Errors show sharp, with their retry.
   const resultsState = !analysisRequested ? 'idle' : point.isLoading ? 'loading' : 'ready'
+  // Wait card next to Analyze: worst-case time of the state's map grid, or why only the point runs.
+  const grid = useGridArea(region)
+  const waitText = gridWaitText({ hasCountry: Boolean(region.country), needsState: grid.needsState, estimate: grid.estimate, tooLarge: grid.tooLarge, areaName: grid.title })
 
   return (
     <main className="app-shell">
@@ -139,11 +142,12 @@ export function AppShell() {
               <MapLayerControls variable={variable} kind={layerKind} onKind={setLayerKind} />
               <div className="setup-actions">
                 <button className="analyze-button" type="button" onClick={analyze} disabled={requesting}><Sparkles size={16} /> {requesting ? 'Requesting…' : 'Analyze region'} <span>→</span></button>
+                {waitText && <p className="layer-status is-limit wait-note" role="note"><Clock size={16} /> <span>{waitText}</span></p>}
               </div>
             </div>
           </div>
           <div className="setup-meta">
-            <div className="setup-note"><Info size={16} /><span>Analyze requests the selected variable and the rest of the processed variables from NASA POWER, and colors the map for the selected country or state. Results are descriptive, not forecasts.</span></div>
+            <div className="setup-note"><Info size={16} /><span>Analyze requests the selected variable and the rest of the processed variables from NASA POWER, and colors the map for the selected state. Results are descriptive, not forecasts.</span></div>
             <div className="panel-footnote"><span className="step-number">01</span><span>SELECT LOCATION, VARIABLE &amp; MAP LAYER</span></div>
           </div>
         </section>

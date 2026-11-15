@@ -100,7 +100,7 @@ export function ProjectionPanel({ variable, data, active, isLoading, on, onToggl
       : !active ? <p className="field-hint">Press <strong>Analyze region</strong> to fit one line per cell for {descriptor.label.en} ({startYear}–{endYear}) and validate it on {rule.holdoutWindows} windows of {rule.holdoutYears} years.</p>
       : isLoading ? <p className="field-hint">Fitting and validating one line per cell…</p>
       : !summary ? null
-      : summary.status !== 'ok' ? <p className="projection-blocked" role="status"><Lock size={16} /> <span><strong>{summary.status === 'blocked-by-quality' ? 'Blocked by quality.' : 'Not enough data.'}</strong> {summary.reason?.en} The map keeps the step 1 layer.</span></p>
+      : summary.status !== 'ok' ? <p className="projection-blocked" role="status"><Lock size={16} /> <span><strong>{summary.status === 'blocked-by-quality' ? 'Blocked by quality.' : 'Not enough data.'}</strong> {summary.reason?.en} Only the projection is blocked: the heat map still shows the measured step 1 layer.</span></p>
       : <p className="field-hint">{!on ? 'Showing the step 1 layer. Show the projection, press play or drag the slider to recolor the grid by year.'
         : playing ? `Playing ${min}–${max} in a loop: ${mode === 'change' ? `each cell turns ${descriptor.colorRole === 'temperature' ? 'red' : 'blue'} as its line rises above its ${lastYear} value and the other color as it falls` : 'each cell darkens as its line rises and lightens as it falls'}. Pause or drag the slider to stop at a year.`
         : 'Paused. Drag the slider to any year, or press play to resume the loop.'}</p>}

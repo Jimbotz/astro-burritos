@@ -123,9 +123,9 @@ function legendSpec(data: RegionResponse | undefined, kind: LayerKind, projectio
 }
 
 // Beside the 2D map: the scale of whatever the cells show right now, highest value on top.
-export function MapLegend({ data, kind, projectionYear, projectionMode = 'value' }: { data?: RegionResponse; kind: LayerKind; projectionYear: number | null; projectionMode?: ProjectionMode }) {
+export function MapLegend({ data, kind, projectionYear, projectionMode = 'value', emptyNote = 'Appears after Analyze' }: { data?: RegionResponse; kind: LayerKind; projectionYear: number | null; projectionMode?: ProjectionMode; emptyNote?: string }) {
   const spec = legendSpec(data, kind, projectionYear, projectionMode)
-  if (!spec) return <aside className="map-legend is-empty" aria-label="Map color scale"><span className="map-legend-title">Scale</span><div className="map-legend-bar" /><span className="map-legend-note">Appears after Analyze</span></aside>
+  if (!spec) return <aside className="map-legend is-empty" aria-label="Map color scale"><span className="map-legend-title">Scale</span><div className="map-legend-bar" /><span className="map-legend-note">{emptyNote}</span></aside>
   const top = spec.bins[spec.bins.length - 1].to
   const bottom = spec.bins[0].from
   const label = (value: number) => (spec.diverging ? formatSigned(value, spec.digits) : formatNumber(value, spec.digits))
@@ -164,10 +164,24 @@ export function MapLayerControls({ variable, kind, onKind }: { variable: Variabl
 // Under the 2D map: request status, legend and regional summary for the layer chosen in step 1.
 export type GridEstimate = { cells: number; tiles: number; seconds: number }
 
-/** "≈ 32 cells in 2 NASA POWER blocks, about 5 s the first time" (blocks stay cached for 24 h). */
-export const estimateText = (estimate: GridEstimate) => `≈ ${estimate.cells.toLocaleString('en-US')} cells in ${estimate.tiles} NASA POWER block${estimate.tiles === 1 ? '' : 's'}, about ${estimate.seconds} s the first time`
+/** "≈ 32 cells in 2 NASA POWER blocks, up to ~5 s the first time" (worst case; blocks stay cached for 24 h). */
+export const estimateText = (estimate: GridEstimate) => `≈ ${estimate.cells.toLocaleString('en-US')} cells in ${estimate.tiles} NASA POWER block${estimate.tiles === 1 ? '' : 's'}, up to ~${estimate.seconds} s the first time`
 
-export function MapLayerResult({ variable, kind, active, data, isLoading, error, areaName, canRequest, estimate, tooLarge, maxCells, elapsed, cancelled, onCancel }: {
+/**
+ * Step 1 wait card next to Analyze: the worst-case time of the map grid, or why only the point (a few seconds) runs.
+ * Null while the state's outline is still loading (no estimate yet).
+ */
+// ponytail: step 1 only offers map variables (REGION_VARIABLE_IDS), so there is no "no map grid" case to word.
+export function gridWaitText({ hasCountry, needsState, estimate, tooLarge, areaName }: { hasCountry: boolean; needsState: boolean; estimate: GridEstimate | null; tooLarge: boolean; areaName?: string }) {
+  const pointOnly = (reason: string) => `A few seconds: only the point is analyzed${reason ? ` (${reason})` : ''}.`
+  if (!hasCountry) return pointOnly('')
+  if (needsState) return pointOnly('choose a state to also color the map')
+  if (!estimate) return null
+  if (tooLarge) return pointOnly(`${areaName ?? 'this state'} is too large for the map grid`)
+  return `Up to ~${estimate.seconds} s the first time: ≈ ${estimate.cells.toLocaleString('en-US')} cells in ${estimate.tiles} NASA POWER block${estimate.tiles === 1 ? '' : 's'} for the map${areaName ? ` of ${areaName}` : ''}. Faster when cached.`
+}
+
+export function MapLayerResult({ variable, kind, active, data, isLoading, error, areaName, canRequest, needsState, estimate, tooLarge, maxCells, elapsed, cancelled, onCancel }: {
   variable: VariableId
   kind: LayerKind
   active: boolean
@@ -176,6 +190,7 @@ export function MapLayerResult({ variable, kind, active, data, isLoading, error,
   error?: Error
   areaName?: string
   canRequest: boolean
+  needsState: boolean
   estimate: GridEstimate | null
   tooLarge: boolean
   maxCells: number
@@ -195,14 +210,15 @@ export function MapLayerResult({ variable, kind, active, data, isLoading, error,
     <div className="field-label"><Layers size={16} /> DATA LAYER{descriptor && <span className="layer-current">{descriptor.label.en} • {kindLabel}</span>}</div>
     {!descriptor ? <p className="field-hint">This variable has no map layer.</p>
       : !canRequest ? <p className="field-hint">Select a country or state to load its grid.</p>
-      : tooLarge && estimate ? <p className="layer-status is-limit" role="status">{areaName ?? 'This area'} covers {estimateText(estimate)}; the map draws up to {maxCells.toLocaleString('en-US')} cells. Choose a state on the globe or in step 1 to see its grid. The point analysis still runs.</p>
+      : needsState ? <p className="field-hint">Choose a state on the globe or in step 1 to color its grid. The point analysis runs either way.</p>
+      : tooLarge && estimate ? <p className="layer-status is-limit" role="status">{areaName ?? 'This area'} covers {estimateText(estimate)}; the map draws up to {maxCells.toLocaleString('en-US')} cells. Choose a smaller state to see its grid. The point analysis still runs.</p>
       : cancelled ? <p className="field-hint">Grid request cancelled. Press <strong>Analyze region</strong> again to retry; blocks that finished downloading stay cached.</p>
       : !active ? <p className="field-hint">Press <strong>Analyze region</strong> in step 1 to color {areaName ?? 'the area'} with {descriptor.label.en}{estimate ? ` (${estimateText(estimate)})` : ''}.</p>
       : null}
 
-    {active && canRequest && !tooLarge && !cancelled && (isLoading ? <div className="layer-status layer-progress" role="status">
+    {active && canRequest && !needsState && !tooLarge && !cancelled && (isLoading ? <div className="layer-status layer-progress" role="status">
         <LoaderCircle className="loading-icon" size={16} />
-        <span>Loading the NASA POWER grid for {areaName ?? 'this area'}… <strong>{elapsed} s</strong>{estimate ? <> of about {estimate.seconds} s ({estimate.cells.toLocaleString('en-US')} cells, {estimate.tiles} block{estimate.tiles === 1 ? '' : 's'})</> : null}</span>
+        <span>Loading the NASA POWER grid for {areaName ?? 'this area'}… <strong>{elapsed} s</strong>{estimate ? <> of up to ~{estimate.seconds} s ({estimate.cells.toLocaleString('en-US')} cells, {estimate.tiles} block{estimate.tiles === 1 ? '' : 's'})</> : null}</span>
         <button className="retry-button export-button" type="button" onClick={onCancel}>Cancel</button>
       </div>
       : error ? <p className="layer-status is-error" role="alert">{error.message}</p>

@@ -29,37 +29,51 @@ type ProjectionUi = { key: string | null; on: boolean; playing: boolean; year: n
 
 const hemisphere = (value: number, positive: string, negative: string) => `${Math.abs(value).toFixed(2)}° ${value >= 0 ? positive : negative}`
 
-// The selected state or country fitted to the box, with neighbors for context and the analysis point.
-// Selection happens on the globe and in step 1, which also picks the variable and the layer kind. The data layer
-// (API v2 /api/region) colors the native NASA POWER cells inside the boundary once Analyze is pressed (`active`).
-export function AreaMap({ region, startYear, endYear, variable, kind, active }: { region: Region; startYear: number; endYear: number; variable: VariableId; kind: LayerKind; active: boolean }) {
+/**
+ * Outline and map-grid size for a region, shared by the step 3 map and the step 1 wait card (SWR dedupes the geo
+ * requests). The grid is for states only: a whole country mixes very different climates and multiplies the POWER
+ * blocks, so a country alone draws its outline and asks for a state (`needsState`); its point analysis still runs.
+ * The size and time are worst case: cells and aligned 5° POWER blocks in the box the server fetches.
+ */
+export function useGridArea(region: Region) {
   const countries = useCountries().data?.features
   const states = useStates(region.country).data?.features
   const country = countries?.find((feature) => feature.properties.ADM0_A3 === region.country)
   const state = region.state ? states?.find((feature) => feature.properties.name === region.state) : undefined
-  const target = region.state ? state : country
-  const title = state?.properties.name ?? country?.properties.NAME
+  const estimate = useMemo(() => {
+    if (!state) return null
+    const box = expandForCells(geometryBBox(state.geometry as unknown as PolygonGeometry))
+    const tiles = tilesFor(box).length
+    return { cells: estimateCells(box), tiles, seconds: Math.max(3, Math.round(tiles * SECONDS_PER_TILE)) }
+  }, [state])
+  return {
+    countries, states, country, state,
+    target: region.state ? state : country,
+    title: state?.properties.name ?? country?.properties.NAME,
+    estimate,
+    tooLarge: estimate !== null && estimate.cells > MAP_MAX_CELLS,
+    needsState: Boolean(region.country) && !region.state,
+  }
+}
+
+// The selected state or country fitted to the box, with neighbors for context and the analysis point.
+// Selection happens on the globe and in step 1, which also picks the variable and the layer kind. The data layer
+// (API v2 /api/region) colors the native NASA POWER cells inside a state once Analyze is pressed (`active`).
+export function AreaMap({ region, startYear, endYear, variable, kind, active }: { region: Region; startYear: number; endYear: number; variable: VariableId; kind: LayerKind; active: boolean }) {
+  const { countries, states, country, state, target, title, estimate, tooLarge, needsState } = useGridArea(region)
   // useId may contain characters that break url(#…) references, so keep only safe ones.
   const safeId = useId().replace(/[^a-zA-Z0-9_-]/g, '')
   const clipId = `area-clip-${safeId}`
   const hatchId = `area-hatch-${safeId}`
 
   const areaId = `${region.country ?? ''}|${region.state ?? ''}`
-  // Only Analyze requests the grid (a large country can take a minute); any new area, period or variable resets `active`.
+  // Only Analyze requests the grid (a large state can take a minute); any new area, period or variable resets `active`.
   // The layer kind only changes the coloring, so switching it never repeats the request.
-  // Size and time of the grid before asking for it: cells and aligned 5° POWER blocks in the box the server fetches.
-  const estimate = useMemo(() => {
-    if (!target) return null
-    const box = expandForCells(geometryBBox(target.geometry as unknown as PolygonGeometry))
-    const tiles = tilesFor(box).length
-    return { cells: estimateCells(box), tiles, seconds: Math.max(3, Math.round(tiles * SECONDS_PER_TILE)) }
-  }, [target])
-  const tooLarge = estimate !== null && estimate.cells > MAP_MAX_CELLS
   // A cancel belongs to one query: a new area, variable, period or Analyze clears it without an effect.
   const queryKey = `${areaId}|${variable}|${startYear}|${endYear}|${active}`
   const [cancelledKey, setCancelledKey] = useState<string | null>(null)
   const cancelled = cancelledKey === queryKey
-  const layer = useRegionLayer(active && target && region.country && isMapVariable(variable) && !tooLarge && !cancelled ? { country: region.country, state: region.state ?? null, variable, startYear, endYear } : null)
+  const layer = useRegionLayer(active && region.country && state && isMapVariable(variable) && !tooLarge && !cancelled ? { country: region.country, state: state.properties.name, variable, startYear, endYear } : null)
   const layerData = active && !cancelled ? layer.data : undefined
   const layerLoading = active && !cancelled && layer.isLoading
   // Elapsed seconds while the grid loads (a large state can take several seconds the first time).
@@ -131,12 +145,12 @@ export function AreaMap({ region, startYear, endYear, variable, kind, active }: 
         </svg>
         <AreaScale kmPerPixel={map.projection.kmPerPixel} />
       </div>
-      <MapLegend data={layerData} kind={kind} projectionYear={shownYear} projectionMode={current.mode} />
+      <MapLegend data={layerData} kind={kind} projectionYear={shownYear} projectionMode={current.mode} emptyNote={needsState ? 'Choose a state' : tooLarge ? 'No grid: state too large' : undefined} />
       </div>
       <ProjectionPanel
         variable={variable}
         data={layerData}
-        active={active && !tooLarge && !cancelled}
+        active={active && Boolean(state) && !tooLarge && !cancelled}
         isLoading={layerLoading}
         on={current.on}
         onToggle={() => setUi({ ...current, on: !current.on, playing: !current.on })}
@@ -148,7 +162,7 @@ export function AreaMap({ region, startYear, endYear, variable, kind, active }: 
         onMode={(mode) => setUi({ ...current, on: true, mode })}
         startYear={startYear}
         endYear={endYear}
-        unavailable={tooLarge ? 'This area is too large for the map grid: choose a state to fit and project its cells.' : cancelled ? 'Grid request cancelled: press Analyze region again to fit the lines.' : undefined}
+        unavailable={needsState ? 'Choose a state to fit and project its cells.' : tooLarge ? 'This state is too large for the map grid: choose a smaller one.' : cancelled ? 'Grid request cancelled: press Analyze region again to fit the lines.' : undefined}
       />
       <div className="globe-caption"><span className="legend-item"><span className="legend-point" /> ANALYSIS POINT</span><span className="globe-location"><MapPin size={16} /> {coords}</span></div>
       <p className="field-hint">Results describe the NASA POWER grid cell (0.5° × 0.625°) that contains the marked point, not a state average. Boundaries: Natural Earth (public domain).</p>
@@ -166,6 +180,7 @@ export function AreaMap({ region, startYear, endYear, variable, kind, active }: 
       error={active && !cancelled ? layer.error : undefined}
       areaName={title}
       canRequest={Boolean(target)}
+      needsState={needsState}
       estimate={estimate}
       tooLarge={tooLarge}
       maxCells={MAP_MAX_CELLS}

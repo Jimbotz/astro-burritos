@@ -63,7 +63,7 @@ function regularizedBeta(x: number, a: number, b: number) {
   return 1 - (front * betaContinuedFraction(b, a, 1 - x)) / b
 }
 
-function studentTCdf(value: number, degreesOfFreedom: number) {
+export function studentTCdf(value: number, degreesOfFreedom: number) {
   if (value === 0) return 0.5
   const x = degreesOfFreedom / (degreesOfFreedom + value * value)
   const incompleteBeta = regularizedBeta(x, degreesOfFreedom / 2, 0.5)
@@ -109,10 +109,11 @@ export function aggregateAnnual(observations: NasaObservation[], parameter: 'T2M
 }
 
 export function calculateTrend(annual: AnnualObservation[]): TrendResult {
-  const completeYears = annual.filter((observation) => observation.completeness >= 0.9 && Number.isFinite(observation.value))
+  // 12 of 12 months, the same rule as API v2 (audit finding A1): an 11-month rain total would bias the year low.
+  const completeYears = annual.filter((observation) => observation.validObservationCount >= observation.expectedObservationCount && Number.isFinite(observation.value))
   const warnings: string[] = []
   const unavailableAutocorrelation = calculateLag1ResidualAutocorrelation([])
-  if (completeYears.length !== annual.length) warnings.push('Years with less than 90% monthly coverage were excluded from the trend.')
+  if (completeYears.length !== annual.length) warnings.push('Years without all 12 monthly values were excluded from the trend.')
   const completeness = completeYears.length ? Math.min(...completeYears.map((observation) => observation.completeness)) : null
   if (completeYears.length < 3) {
     warnings.push('At least three sufficiently complete years are required for a trend estimate.')

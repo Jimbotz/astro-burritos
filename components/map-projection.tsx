@@ -5,23 +5,18 @@ import { AlertTriangle, Eye, EyeOff, Lock, Pause, Play, TrendingUp } from 'lucid
 import type { RegionResponse, VariableId } from '@/lib/api/v2'
 import { Term } from '@/components/term'
 import { canProject } from '@/components/map-layer'
-import { predict } from '@/lib/analysis/projection'
 import { getVariable, PROJECTION_VARIABLE_IDS } from '@/lib/variables/catalog'
-import { formatNumber, formatSigned, unitEn } from '@/lib/ui/format'
+import { formatNumber, formatPValue, formatSigned, unitEn } from '@/lib/ui/format'
+import { cellMean, directionCounts, skillLabel, type ProjectionMode } from '@/lib/ui/projection-view'
 
-/** Plain mean of the cells' line values in one year (a quick read of the slider, not the area-weighted regional series). */
-function cellMean(data: RegionResponse, year: number) {
-  const floor = data.projection?.rule.floor ?? null
-  const values = data.cells.filter((cell) => cell.fit).map((cell) => predict(cell.fit!, year, floor).value)
-  return values.length ? { value: values.reduce((sum, value) => sum + value, 0) / values.length, count: values.length } : null
-}
+const pText = (p: number | null | undefined) => { const text = formatPValue(p); return text.startsWith('<') ? `p ${text}` : `p = ${text}` }
 
 const PROJECTABLE = PROJECTION_VARIABLE_IDS.map((id) => getVariable(id)?.label.en).filter(Boolean).join(', ')
 
 // Step 3: exploratory linear regression of the grid. After Analyze it plays in a loop from the first to the last year,
 // recoloring every cell with its own OLS line (fitted inside the data window, extrapolated after it). Pause stops it;
 // dragging the slider pauses on the chosen year. Drawn only when the API's holdout validation passed.
-export function ProjectionPanel({ variable, data, active, isLoading, on, onToggle, playing, onPlayToggle, year, onScrub, startYear, endYear, unavailable }: {
+export function ProjectionPanel({ variable, data, active, isLoading, on, onToggle, playing, onPlayToggle, year, onScrub, mode, onMode, startYear, endYear, unavailable }: {
   variable: VariableId
   data?: RegionResponse
   active: boolean
@@ -33,6 +28,9 @@ export function ProjectionPanel({ variable, data, active, isLoading, on, onToggl
   year: number
   /** The user picked a year: show it and pause. */
   onScrub: (year: number) => void
+  /** Color the cells by the line's value, or by its change since the last data year. */
+  mode: ProjectionMode
+  onMode: (mode: ProjectionMode) => void
   startYear: number
   endYear: number
   /** Why no grid will be requested (area too large, request cancelled). */
@@ -56,8 +54,10 @@ export function ProjectionPanel({ variable, data, active, isLoading, on, onToggl
   const digits = descriptor.decimals
   const extrapolated = year > lastYear
   const holdout = summary?.holdout
+  const diagnostics = summary?.diagnostics
   const now = ready && on && data ? cellMean(data, year) : null
-  const reference = ready && on && data && year !== lastYear ? cellMean(data, lastYear) : null
+  const change = ready && on && data && year !== lastYear ? cellMean(data, year, 'change') : null
+  const counts = ready && data ? directionCounts(data) : null
 
   return <div className="projection-panel">
     <div className="projection-head">
@@ -66,6 +66,11 @@ export function ProjectionPanel({ variable, data, active, isLoading, on, onToggl
         <button className="icon-button" type="button" disabled={!ready} onClick={onPlayToggle} aria-label={playing ? 'Pause projection animation' : 'Play projection animation'} title={playing ? 'Pause' : 'Play'}>{playing ? <Pause size={16} /> : <Play size={16} />}</button>
         <button className="export-button" type="button" disabled={!ready} onClick={onToggle} aria-pressed={on && ready}>{on && ready ? <><EyeOff size={16} /> Hide projection</> : <><Eye size={16} /> Show projection</>}</button>
       </div>
+    </div>
+
+    <div className="segmented projection-mode" role="group" aria-label="Color the cells by">
+      <button type="button" aria-pressed={mode === 'value'} disabled={!ready} onClick={() => onMode('value')} title="Each cell's line value in the chosen year">Value</button>
+      <button type="button" aria-pressed={mode === 'change'} disabled={!ready} onClick={() => onMode('change')} title={`How much each cell's line has moved since ${lastYear}`}>Change since {lastYear}</button>
     </div>
 
     <div className="projection-slider">
@@ -88,17 +93,22 @@ export function ProjectionPanel({ variable, data, active, isLoading, on, onToggl
     {ready && on && <p className="projection-readout">
       <strong>{year}</strong>
       {extrapolated ? <span className="projection-phase is-extrapolated">Extrapolated · {year - lastYear} yr past the data</span> : <span className="projection-phase">Fitted line · inside the data</span>}
-      {now && <span className="projection-mean">Mean of the {now.count} cells: <b>{formatNumber(now.value, digits)} {unit}</b>{reference && <> ({formatSigned(now.value - reference.value, digits)} {unit} vs {lastYear})</>}</span>}
+      {now && <span className="projection-mean">Mean of the {now.count} cells: <b>{formatNumber(now.value, digits)} {unit}</b>{change && <> ({formatSigned(change.value, digits)} {unit} vs the line in {lastYear})</>}</span>}
     </p>}
 
     {unavailable ? <p className="field-hint">{unavailable}</p>
-      : !active ? <p className="field-hint">Press <strong>Analyze region</strong> to fit one line per cell for {descriptor.label.en} ({startYear}–{endYear}) and validate it on the last {rule.holdoutYears} years.</p>
+      : !active ? <p className="field-hint">Press <strong>Analyze region</strong> to fit one line per cell for {descriptor.label.en} ({startYear}–{endYear}) and validate it on {rule.holdoutWindows} windows of {rule.holdoutYears} years.</p>
       : isLoading ? <p className="field-hint">Fitting and validating one line per cell…</p>
       : !summary ? null
       : summary.status !== 'ok' ? <p className="projection-blocked" role="status"><Lock size={16} /> <span><strong>{summary.status === 'blocked-by-quality' ? 'Blocked by quality.' : 'Not enough data.'}</strong> {summary.reason?.en} The map keeps the step 1 layer.</span></p>
       : <p className="field-hint">{!on ? 'Showing the step 1 layer. Show the projection, press play or drag the slider to recolor the grid by year.'
-        : playing ? `Playing ${min}–${max} in a loop: each cell darkens as its line rises and lightens as it falls. Pause or drag the slider to stop at a year.`
-        : 'Paused. Drag the slider to any year, or press play to resume the loop.'} Lines rise in {summary.rising} cells and fall in {summary.falling}.</p>}
+        : playing ? `Playing ${min}–${max} in a loop: ${mode === 'change' ? `each cell turns ${descriptor.colorRole === 'temperature' ? 'red' : 'blue'} as its line rises above its ${lastYear} value and the other color as it falls` : 'each cell darkens as its line rises and lightens as it falls'}. Pause or drag the slider to stop at a year.`
+        : 'Paused. Drag the slider to any year, or press play to resume the loop.'}</p>}
+
+    {counts && <p className="projection-counts">
+      Lines rise in <strong>{counts.rising}</strong> cells ({counts.risingSignificant} with a significant trend) and fall in <strong>{counts.falling}</strong> ({counts.fallingSignificant} significant).
+      {counts.uncertain > 0 && <> <span className="legend-swatch-hatch" aria-hidden="true" /> {counts.uncertain} hatched: their trend is not significant across the field (<Term name="fieldFdr">field FDR</Term> q ≥ 0.10), so their direction is not told apart from year-to-year noise.</>}
+    </p>}
 
     {summary?.status === 'ok' && summary.warnings.length > 0 && <ul className="projection-warnings">
       {summary.warnings.map((warning) => <li key={warning.code}><AlertTriangle size={16} aria-hidden="true" /> <span>{warning.en}</span></li>)}
@@ -106,6 +116,14 @@ export function ProjectionPanel({ variable, data, active, isLoading, on, onToggl
 
     {holdout && <p className="projection-validation">
       Validation on {holdout.years[0]}–{holdout.years[1]} (held out, area-weighted series of {holdout.cells} cells, {holdout.points} years): line error (<Term name="rmse">RMSE</Term>) <strong>{formatNumber(holdout.rmseModel, digits)} {unit}</strong> vs <strong>{formatNumber(holdout.rmseBaseline, digits)} {unit}</strong> for the average ({holdout.skill >= 0 ? `${Math.round(holdout.skill * 100)}% better` : `${Math.round(-holdout.skill * 100)}% worse`}; at least {Math.round(rule.minSkill * 100)}% needed) · <strong>{Math.round(holdout.coverage95 * 100)}%</strong> inside the <Term name="predictionInterval">95% prediction interval</Term> · held-out years ran {holdout.bias >= 0 ? 'above' : 'below'} the line by <strong>{formatNumber(Math.abs(holdout.bias), digits)} {unit}</strong> on average.
+    </p>}
+    {holdout && holdout.windows.length > 1 && <ul className="projection-windows" aria-label="Improvement over the average in each validation window">
+      {holdout.windows.map((window) => <li key={window.years[0]} className={window.skill > 0 ? '' : 'is-worse'}>
+        <span>{window.years[0]}–{window.years[1]}</span> <strong>{skillLabel(window.skill)}</strong> <span>vs the average</span>
+      </li>)}
+    </ul>}
+    {diagnostics && (diagnostics.curvature || diagnostics.variance) && <p className="projection-validation">
+      Shape checks on the regional series ({diagnostics.years} years): curvature {pText(diagnostics.curvature?.pValue)} · scatter {diagnostics.variance && diagnostics.variance.trend > 0 ? 'growing' : 'shrinking'} over time {pText(diagnostics.variance?.pValue)}. Curvature, or growing scatter, below p {rule.diagnosticAlpha} adds a warning.
     </p>}
     <p className="projection-note">One OLS line per native cell over its complete years ({summary?.fitYears[0] ?? startYear}–{lastYear}); hover a cell for its value and 95% prediction interval. {rule.rationale.en}</p>
   </div>

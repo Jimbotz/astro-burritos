@@ -5,6 +5,7 @@ import { analyzeCells, containsPoint, coverageFraction, estimateCells, expandFor
 import { projectCells } from '../analysis/projection'
 import { fetchMonthlyRegional, type BBox } from '../nasa/power'
 import type { VariableDescriptor } from '../variables/catalog'
+import type { Area } from './areas'
 import { SCHEMA_VERSION, type RegionResponse } from './v2'
 
 export class RegionError extends Error {
@@ -23,7 +24,11 @@ export function validateBBox(bbox: BBox) {
   if (bbox.maxLon - bbox.minLon > 180) throw new RegionError('Regions crossing the antimeridian are not supported.', 422)
 }
 
-export async function analyzeRegion(variable: VariableDescriptor, startYear: number, endYear: number, selection: { geometry?: PolygonGeometry; bbox?: BBox }): Promise<RegionResponse> {
+/** What to analyze: a map area by id (GET), a posted polygon (POST) or a bounding box (GET). */
+export type RegionSelection = { area: Area } | { geometry: PolygonGeometry } | { bbox: BBox }
+
+export async function analyzeRegion(variable: VariableDescriptor, startYear: number, endYear: number, choice: RegionSelection, signal?: AbortSignal): Promise<RegionResponse> {
+  const selection: { geometry?: PolygonGeometry; bbox?: BBox } = 'area' in choice ? { geometry: choice.area.geometry } : choice
   const bbox = selection.geometry ? geometryBBox(selection.geometry) : (selection.bbox as BBox)
   validateBBox(bbox)
   const fetchBox = selection.geometry ? expandForCells(bbox) : bbox
@@ -32,7 +37,7 @@ export async function analyzeRegion(variable: VariableDescriptor, startYear: num
   const profile = variable.profile
   const parameter = variable.source.parameters[0]
   const fetchEnd = Math.max(endYear, 2020)
-  const fetched = await fetchMonthlyRegional(parameter, fetchBox, 1981, fetchEnd)
+  const fetched = await fetchMonthlyRegional(parameter, fetchBox, 1981, fetchEnd, 4, signal)
   let removed = 0
   const selected = fetched.cells
     .map((cell) => {
@@ -63,7 +68,10 @@ export async function analyzeRegion(variable: VariableDescriptor, startYear: num
   return {
     schemaVersion: SCHEMA_VERSION,
     generatedAt: new Date().toISOString(),
-    request: { variable: variable.id, startYear, endYear, selection: selection.geometry ? 'polygon' : 'bbox', bbox },
+    request: {
+      variable: variable.id, startYear, endYear, selection: 'area' in choice ? 'area' : selection.geometry ? 'polygon' : 'bbox', bbox,
+      ...('area' in choice ? { area: { country: choice.area.country, state: choice.area.state, name: choice.area.name } } : {}),
+    },
     variable: { id: variable.id, label: variable.label, unit: variable.unit, trendUnit: variable.trendUnit, trendPolicy: variable.trendPolicy, fitness: variable.fitness, profile },
     grid: { dLat: 0.5, dLon: 0.625, cellCount: cells.length, tileCount: fetched.tileCount },
     cells,

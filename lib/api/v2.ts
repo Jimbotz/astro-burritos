@@ -71,7 +71,15 @@ export type LegendDomain = { min: number; max: number; symmetricMaxAbs: number }
 export type RegionResponse = {
   schemaVersion: typeof SCHEMA_VERSION
   generatedAt: string
-  request: { variable: VariableId; startYear: number; endYear: number; selection: 'polygon' | 'bbox'; bbox: { minLat: number; maxLat: number; minLon: number; maxLon: number } }
+  request: {
+    variable: VariableId
+    startYear: number
+    endYear: number
+    /** `area`: GET by Natural Earth id (country, state); `polygon`: POSTed geometry; `bbox`: GET by bounding box. */
+    selection: 'area' | 'polygon' | 'bbox'
+    bbox: { minLat: number; maxLat: number; minLon: number; maxLon: number }
+    area?: { country: string; state: string | null; name: string }
+  }
   variable: { id: VariableId; label: { es: string; en: string }; unit: string; trendUnit: string; trendPolicy: VariableDescriptor['trendPolicy']; fitness: VariableDescriptor['fitness']; profile: ProcessingProfile }
   grid: { dLat: 0.5; dLon: 0.625; cellCount: number; tileCount: number }
   cells: CellResult[]

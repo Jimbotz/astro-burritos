@@ -1,26 +1,10 @@
-import { readFileSync } from 'node:fs'
-import { gunzipSync } from 'node:zlib'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { analyzePoint } from '../../lib/api/point-service'
 import { analyzeRegion, RegionError, validateBBox } from '../../lib/api/region-service'
 import { getVariable, POINT_VARIABLE_IDS } from '../../lib/variables/catalog'
+import { fakePower, stateGeometry } from '../helpers/power-fixtures'
 
-// Real NASA POWER responses saved in tests/fixtures/power (see its manifest.json for the exact requests).
-const fixture = (name: string) => readFileSync(new URL(`../fixtures/power/${name}`, import.meta.url))
-const monthly = JSON.parse(fixture('monthly-point-puebla.json').toString('utf8'))
-const daily = JSON.parse(gunzipSync(fixture('daily-point-puebla.json.gz')).toString('utf8'))
-const regional = JSON.parse(fixture('monthly-regional-T2M-tlaxcala.json').toString('utf8'))
-const tlaxcala = JSON.parse(readFileSync(new URL('../../public/geo/admin1/MEX.json', import.meta.url), 'utf8')).features.find((feature: { properties: { name: string } }) => feature.properties.name === 'Tlaxcala').geometry
-
-/** Answers POWER requests from the fixtures; anything else gets the 422 POWER returns for a bad request. */
-function fakePower(input: string | URL | Request) {
-  const url = new URL(String(input instanceof Request ? input.url : input))
-  const body = url.pathname.endsWith('/monthly/point') ? monthly
-    : url.pathname.endsWith('/daily/point') ? daily
-    : url.pathname.endsWith('/monthly/regional') && url.searchParams.get('parameters') === 'T2M' ? regional
-    : null
-  return Promise.resolve(body ? new Response(JSON.stringify(body), { status: 200 }) : new Response(JSON.stringify({ messages: ['not in the fixtures'] }), { status: 422 }))
-}
+const tlaxcala = stateGeometry('MEX', 'Tlaxcala')
 
 beforeEach(() => { vi.stubGlobal('fetch', vi.fn(fakePower)) })
 afterEach(() => { vi.unstubAllGlobals() })

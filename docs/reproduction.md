@@ -9,7 +9,7 @@ pnpm build
 pnpm dev
 ```
 
-Open `http://localhost:3000`, keep Puebla and the default period, choose a variable, and press **Analyze region**. The browser calls the local `/api/series` route; only the server route calls NASA POWER. The response is cached for one day and includes the exact source URL and retrieval timestamp.
+Open `http://localhost:3000`, keep Puebla and the default period, choose a variable, and press **Analyze region**. The browser calls the local `/api/point` route (every variable at the point) and `GET /api/region?country=…&state=…` (the map grid). Only those server routes call NASA POWER. Responses are cached for one day and include the exact source URLs and retrieval timestamps.
 
 ## Verify the scientific path
 

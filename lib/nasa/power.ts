@@ -13,10 +13,13 @@ const BASE = 'https://power.larc.nasa.gov/api/temporal'
 export const CELL = { dLat: 0.5, dLon: 0.625 } as const
 export const TILE_DEGREES = 5
 
+/** `cancelled`: the client went away (request.signal aborted), so the remaining POWER calls were not made. */
+export type PowerErrorKind = 'rejected' | 'unavailable' | 'timeout' | 'invalid-payload' | 'cancelled'
+
 export class PowerError extends Error {
   readonly status: number
-  readonly kind: 'rejected' | 'unavailable' | 'timeout' | 'invalid-payload'
-  constructor(message: string, status: number, kind: 'rejected' | 'unavailable' | 'timeout' | 'invalid-payload') {
+  readonly kind: PowerErrorKind
+  constructor(message: string, status: number, kind: PowerErrorKind) {
     super(message)
     this.status = status
     this.kind = kind
@@ -37,13 +40,17 @@ type PowerHeader = { api?: { version?: string }; sources?: string[]; fill_value?
 type PowerPointPayload = { geometry?: { coordinates?: number[] }; header?: PowerHeader; properties?: { parameter?: Record<string, Record<string, unknown>> }; parameters?: Record<string, { units?: string }>; messages?: string[] }
 type PowerRegionalPayload = { header?: PowerHeader; features?: Array<{ geometry?: { coordinates?: number[] }; properties?: { parameter?: Record<string, Record<string, unknown>> } }>; messages?: string[] }
 
-async function powerFetch<T>(url: URL, timeoutMs: number): Promise<T> {
+const cancelled = () => new PowerError('The request was cancelled by the client.', 499, 'cancelled')
+
+/** One POWER call with a timeout and one retry on 5xx/429. `signal` (the client's request) cancels it, without retry. */
+async function powerFetch<T>(url: URL, timeoutMs: number, signal?: AbortSignal): Promise<T> {
   let lastError: unknown = null
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (signal?.aborted) throw cancelled()
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
     try {
-      const response = await fetch(url, { next: { revalidate: 86400 }, signal: controller.signal })
+      const response = await fetch(url, { next: { revalidate: 86400 }, signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal })
       if (response.ok) {
         try { return await response.json() as T } catch { throw new PowerError('NASA POWER returned an unreadable response.', 502, 'invalid-payload') }
       }
@@ -52,6 +59,7 @@ async function powerFetch<T>(url: URL, timeoutMs: number): Promise<T> {
       try { const body = await response.json() as { messages?: string[] }; detail = body.messages?.join(' ') ?? '' } catch { /* keep generic */ }
       throw new PowerError(`NASA POWER rejected the request (HTTP ${response.status}). ${detail}`.trim(), 502, 'rejected')
     } catch (error) {
+      if (signal?.aborted) throw cancelled()
       if (error instanceof PowerError && error.kind !== 'unavailable') throw error
       lastError = error
     } finally {
@@ -89,18 +97,18 @@ function parsePoint(payload: PowerPointPayload, parameters: string[]) {
   return { series, units, elevationM: payload.geometry?.coordinates?.[2] ?? null }
 }
 
-export async function fetchMonthlyPoint(parameters: string[], latitude: number, longitude: number, startYear: number, endYear: number): Promise<PointFetchResult> {
+export async function fetchMonthlyPoint(parameters: string[], latitude: number, longitude: number, startYear: number, endYear: number, signal?: AbortSignal): Promise<PointFetchResult> {
   const url = new URL(`${BASE}/monthly/point`)
   url.search = new URLSearchParams({ parameters: parameters.join(','), community: 'AG', longitude: String(longitude), latitude: String(latitude), start: String(startYear), end: String(endYear), format: 'JSON', 'time-standard': 'LST' }).toString()
-  const payload = await powerFetch<PowerPointPayload>(url, 30_000)
+  const payload = await powerFetch<PowerPointPayload>(url, 30_000, signal)
   if (!payload.properties?.parameter) throw new PowerError('NASA POWER did not return the requested parameters.', 502, 'invalid-payload')
   return { ...parsePoint(payload, parameters), source: sourceInfo('monthly-point', url, payload.header) }
 }
 
-export async function fetchDailyPoint(parameters: string[], latitude: number, longitude: number, startYear: number, endYear: number): Promise<PointFetchResult> {
+export async function fetchDailyPoint(parameters: string[], latitude: number, longitude: number, startYear: number, endYear: number, signal?: AbortSignal): Promise<PointFetchResult> {
   const url = new URL(`${BASE}/daily/point`)
   url.search = new URLSearchParams({ parameters: parameters.join(','), community: 'AG', longitude: String(longitude), latitude: String(latitude), start: `${startYear}0101`, end: `${endYear}1231`, format: 'JSON', 'time-standard': 'LST' }).toString()
-  const payload = await powerFetch<PowerPointPayload>(url, 60_000)
+  const payload = await powerFetch<PowerPointPayload>(url, 60_000, signal)
   if (!payload.properties?.parameter) throw new PowerError('NASA POWER did not return the requested daily parameters.', 502, 'invalid-payload')
   return { ...parsePoint(payload, parameters), source: sourceInfo('daily-point', url, payload.header) }
 }
@@ -123,18 +131,22 @@ export function tilesFor(bbox: BBox) {
   return tiles
 }
 
-/** Fetches one monthly parameter for every MERRA-2 cell in the tiles covering the bbox (deduplicated). */
-export async function fetchMonthlyRegional(parameter: string, bbox: BBox, startYear: number, endYear: number, concurrency = 4) {
+/**
+ * Fetches one monthly parameter for every MERRA-2 cell in the tiles covering the bbox (deduplicated). When `signal`
+ * aborts, no new tile is requested and the ones in flight are cancelled; tiles already downloaded stay in the data cache.
+ */
+export async function fetchMonthlyRegional(parameter: string, bbox: BBox, startYear: number, endYear: number, concurrency = 4, signal?: AbortSignal) {
   const tiles = tilesFor(bbox)
   const cells = new Map<string, RegionalCellRaw>()
   const sources: PowerSourceInfo[] = []
   let cursor = 0
   async function worker() {
     while (cursor < tiles.length) {
+      if (signal?.aborted) throw cancelled()
       const tile = tiles[cursor++]
       const url = new URL(`${BASE}/monthly/regional`)
       url.search = new URLSearchParams({ parameters: parameter, community: 'AG', 'latitude-min': String(tile.minLat), 'latitude-max': String(tile.maxLat), 'longitude-min': String(tile.minLon), 'longitude-max': String(tile.maxLon), start: String(startYear), end: String(endYear), format: 'JSON' }).toString()
-      const payload = await powerFetch<PowerRegionalPayload>(url, 60_000)
+      const payload = await powerFetch<PowerRegionalPayload>(url, 60_000, signal)
       const fill = payload.header?.fill_value ?? -999
       sources.push(sourceInfo('monthly-regional', url, payload.header))
       for (const feature of payload.features ?? []) {

@@ -88,7 +88,8 @@ export async function fetchNasaPowerMonthly(request: NasaPowerRequest): Promise<
   try {
     response = await requestPower(url)
   } catch (error) {
-    if (error instanceof Error && error.message.includes('timed out')) throw error
+    // Keep the timeout and the 4xx rejection messages (audit finding A6): a bad period is not a connection problem.
+    if (error instanceof Error && (error.message.includes('timed out') || error.message.startsWith('NASA POWER request rejected'))) throw error
     throw new Error('NASA POWER could not be reached after two attempts. Check the connection and try again.')
   }
 

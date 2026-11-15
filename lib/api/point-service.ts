@@ -8,14 +8,14 @@ import { SCHEMA_VERSION, type PointResponse, type VariableResult } from './v2'
 
 const FETCH_START = 1981
 
-export async function analyzePoint(latitude: number, longitude: number, startYear: number, endYear: number, requested: VariableId[]): Promise<PointResponse> {
+export async function analyzePoint(latitude: number, longitude: number, startYear: number, endYear: number, requested: VariableId[], signal?: AbortSignal): Promise<PointResponse> {
   const fetchEnd = Math.max(endYear, BASE_PERIOD.endYear)
   const pointVariables = VARIABLES.filter((variable) => variable.availability.point)
   const monthlyParams = [...new Set(pointVariables.filter((v) => v.source.endpoint === 'monthly').flatMap((v) => v.source.parameters))] as PowerMonthlyParameter[]
   const dailyParams = [...new Set(pointVariables.filter((v) => v.source.endpoint === 'daily').flatMap((v) => v.source.parameters))] as PowerDailyParameter[]
   const [monthly, daily] = await Promise.all([
-    fetchMonthlyPoint(monthlyParams, latitude, longitude, FETCH_START, fetchEnd),
-    fetchDailyPoint(dailyParams, latitude, longitude, FETCH_START, fetchEnd),
+    fetchMonthlyPoint(monthlyParams, latitude, longitude, FETCH_START, fetchEnd, signal),
+    fetchDailyPoint(dailyParams, latitude, longitude, FETCH_START, fetchEnd, signal),
   ])
   const thresholds: Record<string, Map<string, number> | null> = {}
   const seasonal: Array<{ id: string; trend: RobustTrend }> = []

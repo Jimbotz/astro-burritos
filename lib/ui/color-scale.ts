@@ -73,3 +73,25 @@ export function sequentialLegend(min: number, max: number, role: ColorRole): Leg
   const width = (max - min) / TINT_STEPS.length
   return TINT_STEPS.map((percent, index) => ({ fill: tint(role === 'temperature' ? WARM : COOL, percent), from: min + index * width, to: min + (index + 1) * width }))
 }
+
+/**
+ * Projection "change" mode: line value minus the line in the last data year, diverging and continuous (tint 8% → 80%
+ * per side, white at 0), so the color still moves with every slider year. maxAbs is fixed over the whole slider range.
+ */
+export function changeFill(value: number, maxAbs: number, role: ColorRole) {
+  const colors = divergingColors(role)
+  const fraction = maxAbs > 0 ? Math.min(1, Math.abs(value) / maxAbs) : 0
+  if (fraction === 0) return 'var(--color-white)'
+  return tint(value >= 0 ? colors.positive : colors.negative, Math.round((PROJECTION_TINT.min + fraction * (PROJECTION_TINT.max - PROJECTION_TINT.min)) * 10) / 10)
+}
+
+/** Legend for changeFill: strongest negative first, white at 0, strongest positive last. */
+export function changeLegend(maxAbs: number, role: ColorRole): LegendBin[] {
+  const colors = divergingColors(role)
+  const scale = maxAbs > 0 ? maxAbs : 1
+  const steps = PROJECTION_STEPS.slice(1)
+  const width = scale / steps.length
+  const negative = [...steps].reverse().map((percent, index) => ({ fill: tint(colors.negative, percent), from: -scale + index * width, to: -scale + (index + 1) * width }))
+  const positive = steps.map((percent, index) => ({ fill: tint(colors.positive, percent), from: index * width, to: (index + 1) * width }))
+  return [...negative, ...positive]
+}

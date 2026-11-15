@@ -12,6 +12,7 @@ import type { VariableId } from '@/lib/api/v2'
 import { estimateCells, expandForCells, geometryBBox, type PolygonGeometry } from '@/lib/analysis/region'
 import { tilesFor } from '@/lib/nasa/power'
 import { fitProjection, niceKm, useCountries, useStates } from '@/lib/geo'
+import type { ProjectionMode } from '@/lib/ui/projection-view'
 
 const WIDTH = 600
 const HEIGHT = 320
@@ -24,7 +25,7 @@ export const MAP_MAX_CELLS = 800
 const SECONDS_PER_TILE = 2.5
 
 /** Projection controls for one loaded response (`key`); a new response starts again from the defaults. */
-type ProjectionUi = { key: string | null; on: boolean; playing: boolean; year: number }
+type ProjectionUi = { key: string | null; on: boolean; playing: boolean; year: number; mode: ProjectionMode }
 
 const hemisphere = (value: number, positive: string, negative: string) => `${Math.abs(value).toFixed(2)}° ${value >= 0 ? positive : negative}`
 
@@ -39,7 +40,9 @@ export function AreaMap({ region, startYear, endYear, variable, kind, active }: 
   const target = region.state ? state : country
   const title = state?.properties.name ?? country?.properties.NAME
   // useId may contain characters that break url(#…) references, so keep only safe ones.
-  const clipId = `area-clip-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
+  const safeId = useId().replace(/[^a-zA-Z0-9_-]/g, '')
+  const clipId = `area-clip-${safeId}`
+  const hatchId = `area-hatch-${safeId}`
 
   const areaId = `${region.country ?? ''}|${region.state ?? ''}`
   // Only Analyze requests the grid (a large country can take a minute); any new area, period or variable resets `active`.
@@ -56,7 +59,7 @@ export function AreaMap({ region, startYear, endYear, variable, kind, active }: 
   const queryKey = `${areaId}|${variable}|${startYear}|${endYear}|${active}`
   const [cancelledKey, setCancelledKey] = useState<string | null>(null)
   const cancelled = cancelledKey === queryKey
-  const layer = useRegionLayer(active && target && isMapVariable(variable) && !tooLarge && !cancelled ? { areaId, variable, startYear, endYear, geometry: target.geometry } : null)
+  const layer = useRegionLayer(active && target && region.country && isMapVariable(variable) && !tooLarge && !cancelled ? { country: region.country, state: region.state ?? null, variable, startYear, endYear } : null)
   const layerData = active && !cancelled ? layer.data : undefined
   const layerLoading = active && !cancelled && layer.isLoading
   // Elapsed seconds while the grid loads (a large state can take several seconds the first time).
@@ -75,8 +78,8 @@ export function AreaMap({ region, startYear, endYear, variable, kind, active }: 
   const summary = layerData?.projection ?? null
   const sessionKey = projectable && summary ? `${queryKey}|${summary.fitYears.join('-')}` : null
   const defaults = useMemo<ProjectionUi>(() => sessionKey && summary
-    ? { key: sessionKey, on: true, playing: !reducedMotion, year: reducedMotion ? summary.fitYears[1] : summary.horizon[0] }
-    : { key: null, on: false, playing: false, year: endYear }, [sessionKey, summary, reducedMotion, endYear])
+    ? { key: sessionKey, on: true, playing: !reducedMotion, year: reducedMotion ? summary.fitYears[1] : summary.horizon[0], mode: 'value' }
+    : { key: null, on: false, playing: false, year: endYear, mode: 'value' }, [sessionKey, summary, reducedMotion, endYear])
   const [ui, setUi] = useState<ProjectionUi | null>(null)
   const current = ui && ui.key === defaults.key ? ui : defaults
   // Picking a step 1 layer (anomaly, trend, average) shows that layer instead of the projection (adjusted during render).
@@ -105,8 +108,8 @@ export function AreaMap({ region, startYear, endYear, variable, kind, active }: 
   }, [target, states, countries, region.country])
 
   const coords = `${hemisphere(region.lat, 'N', 'S')} • ${hemisphere(region.lon, 'E', 'W')}`
-  const cells = map && layerData ? <g clipPath={`url(#${clipId})`}><MapCells data={layerData} kind={effectiveKind(kind, layerData.variable.trendPolicy)} project={map.projection.project} projectionYear={shownYear} /></g> : null
-  const coloredBy = layerData ? `, colored by ${layerData.variable.label.en}${shownYear !== null ? ` projected to ${shownYear}` : ''}` : ''
+  const cells = map && layerData ? <g clipPath={`url(#${clipId})`}><MapCells data={layerData} kind={effectiveKind(kind, layerData.variable.trendPolicy)} project={map.projection.project} projectionYear={shownYear} projectionMode={current.mode} hatchId={hatchId} /></g> : null
+  const coloredBy = layerData ? `, colored by ${layerData.variable.label.en}${shownYear !== null ? `${current.mode === 'change' ? ' change since the last data year' : ''} projected to ${shownYear}` : ''}` : ''
 
   return <section className="area-panel panel" aria-labelledby="area-title">
     <PanelHeader badge="Step 3" title="See it on the map" icon={MapPinned} />
@@ -115,7 +118,10 @@ export function AreaMap({ region, startYear, endYear, variable, kind, active }: 
       <div className="area-map-row">
       <div className="area-map">
         <svg className="area-svg" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={`Outline of ${region.name} with the analysis point at ${coords}${coloredBy}`}>
-          <defs><clipPath id={clipId}><path d={map.shape} /></clipPath></defs>
+          <defs>
+            <clipPath id={clipId}><path d={map.shape} /></clipPath>
+            <pattern id={hatchId} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line className="map-hatch-line" x1="0" y1="0" x2="0" y2="6" /></pattern>
+          </defs>
           <path className="area-neighbor" d={map.neighbors} />
           {region.state
             ? <><path className="area-context" d={map.subdivisions} /><path className="area-shape" d={map.shape} />{cells}</>
@@ -125,7 +131,7 @@ export function AreaMap({ region, startYear, endYear, variable, kind, active }: 
         </svg>
         <AreaScale kmPerPixel={map.projection.kmPerPixel} />
       </div>
-      <MapLegend data={layerData} kind={kind} projectionYear={shownYear} />
+      <MapLegend data={layerData} kind={kind} projectionYear={shownYear} projectionMode={current.mode} />
       </div>
       <ProjectionPanel
         variable={variable}
@@ -138,6 +144,8 @@ export function AreaMap({ region, startYear, endYear, variable, kind, active }: 
         onPlayToggle={() => setUi({ ...current, on: true, playing: !(current.playing && shownYear !== null) })}
         year={current.year}
         onScrub={(year) => setUi({ ...current, on: true, playing: false, year })}
+        mode={current.mode}
+        onMode={(mode) => setUi({ ...current, on: true, mode })}
         startYear={startYear}
         endYear={endYear}
         unavailable={tooLarge ? 'This area is too large for the map grid: choose a state to fit and project its cells.' : cancelled ? 'Grid request cancelled: press Analyze region again to fit the lines.' : undefined}

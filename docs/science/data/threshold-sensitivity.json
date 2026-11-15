@@ -1,0 +1,2072 @@
+{
+  "generatedAt": "2026-11-15T12:46:44.357Z",
+  "window": {
+    "startYear": 2001,
+    "endYear": 2024
+  },
+  "defaults": {
+    "method": "ols",
+    "holdoutYears": 5,
+    "holdoutWindows": 2,
+    "horizonYears": 10,
+    "minFitYears": 10,
+    "minCoverage": 0.8,
+    "minSkill": 0.1,
+    "diagnosticAlpha": 0.05,
+    "floor": null,
+    "fieldFdrQ": 0.1,
+    "minWetShare": 0.6,
+    "minAnnualRainMm": 100
+  },
+  "powerRequestsDownloaded": 0,
+  "projectionAndField": [
+    {
+      "state": "Puebla",
+      "variable": "T2M",
+      "cells": 21,
+      "regionalVerdict": "robust",
+      "published": {
+        "status": "ok",
+        "skill": 0.2,
+        "coverage95": 0.7,
+        "windows": [
+          {
+            "years": [
+              2015,
+              2019
+            ],
+            "skill": -0.037
+          },
+          {
+            "years": [
+              2020,
+              2024
+            ],
+            "skill": 0.26
+          }
+        ],
+        "warnings": [
+          "unstable-skill",
+          "interval-undercoverage",
+          "curvature"
+        ],
+        "curvatureP": 0.0007,
+        "varianceP": 0.1426,
+        "varianceGrowing": true
+      },
+      "minSkill": {
+        "0": "ok",
+        "0.05": "ok",
+        "0.1": "ok",
+        "0.15": "ok",
+        "0.2": "blocked-by-quality"
+      },
+      "design": {
+        "1x5": {
+          "status": "ok",
+          "skill": 0.26,
+          "windows": [
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.26
+            }
+          ],
+          "warnings": [
+            "interval-undercoverage",
+            "curvature"
+          ]
+        },
+        "2x5": {
+          "status": "ok",
+          "skill": 0.2,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": -0.037
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.26
+            }
+          ],
+          "warnings": [
+            "unstable-skill",
+            "interval-undercoverage",
+            "curvature"
+          ]
+        },
+        "3x5": {
+          "status": "ok",
+          "skill": 0.2,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": -0.037
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.26
+            }
+          ],
+          "warnings": [
+            "unstable-skill",
+            "interval-undercoverage",
+            "curvature"
+          ]
+        },
+        "2x4": {
+          "status": "ok",
+          "skill": 0.274,
+          "windows": [
+            {
+              "years": [
+                2017,
+                2020
+              ],
+              "skill": 0.183
+            },
+            {
+              "years": [
+                2021,
+                2024
+              ],
+              "skill": 0.302
+            }
+          ],
+          "warnings": [
+            "interval-undercoverage",
+            "curvature"
+          ]
+        },
+        "2x6": {
+          "status": "ok",
+          "skill": 0.129,
+          "windows": [
+            {
+              "years": [
+                2013,
+                2018
+              ],
+              "skill": -0.099
+            },
+            {
+              "years": [
+                2019,
+                2024
+              ],
+              "skill": 0.142
+            }
+          ],
+          "warnings": [
+            "unstable-skill",
+            "interval-undercoverage",
+            "curvature"
+          ]
+        }
+      },
+      "diagnosticAlpha": {
+        "0.01": [
+          "curvature"
+        ],
+        "0.05": [
+          "curvature"
+        ],
+        "0.1": [
+          "curvature"
+        ]
+      },
+      "fieldFdr": {
+        "0.05": 19,
+        "0.1": 19,
+        "0.2": 21
+      }
+    },
+    {
+      "state": "Puebla",
+      "variable": "TXx",
+      "cells": 21,
+      "regionalVerdict": "not-detectable",
+      "published": {
+        "status": "blocked-by-quality",
+        "skill": -0.055,
+        "coverage95": 0.9,
+        "windows": [
+          {
+            "years": [
+              2015,
+              2019
+            ],
+            "skill": 0.012
+          },
+          {
+            "years": [
+              2020,
+              2024
+            ],
+            "skill": -0.076
+          }
+        ],
+        "warnings": [],
+        "curvatureP": 0.0307,
+        "varianceP": 0.9567,
+        "varianceGrowing": false
+      },
+      "minSkill": {
+        "0": "blocked-by-quality",
+        "0.05": "blocked-by-quality",
+        "0.1": "blocked-by-quality",
+        "0.15": "blocked-by-quality",
+        "0.2": "blocked-by-quality"
+      },
+      "design": {
+        "1x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.076,
+          "windows": [
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.076
+            }
+          ],
+          "warnings": []
+        },
+        "2x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.055,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": 0.012
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.076
+            }
+          ],
+          "warnings": []
+        },
+        "3x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.055,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": 0.012
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.076
+            }
+          ],
+          "warnings": []
+        },
+        "2x4": {
+          "status": "blocked-by-quality",
+          "skill": -0.062,
+          "windows": [
+            {
+              "years": [
+                2017,
+                2020
+              ],
+              "skill": -0.395
+            },
+            {
+              "years": [
+                2021,
+                2024
+              ],
+              "skill": 0.008
+            }
+          ],
+          "warnings": []
+        },
+        "2x6": {
+          "status": "blocked-by-quality",
+          "skill": -0.142,
+          "windows": [
+            {
+              "years": [
+                2013,
+                2018
+              ],
+              "skill": 0.049
+            },
+            {
+              "years": [
+                2019,
+                2024
+              ],
+              "skill": -0.197
+            }
+          ],
+          "warnings": []
+        }
+      },
+      "diagnosticAlpha": {
+        "0.01": [],
+        "0.05": [
+          "curvature"
+        ],
+        "0.1": [
+          "curvature"
+        ]
+      },
+      "fieldFdr": {
+        "0.05": 0,
+        "0.1": 0,
+        "0.2": 0
+      }
+    },
+    {
+      "state": "Puebla",
+      "variable": "TNn",
+      "cells": 21,
+      "regionalVerdict": "probable",
+      "published": {
+        "status": "blocked-by-quality",
+        "skill": 0.043,
+        "coverage95": 1,
+        "windows": [
+          {
+            "years": [
+              2015,
+              2019
+            ],
+            "skill": -0.002
+          },
+          {
+            "years": [
+              2020,
+              2024
+            ],
+            "skill": 0.081
+          }
+        ],
+        "warnings": [],
+        "curvatureP": 0.2062,
+        "varianceP": 0.7075,
+        "varianceGrowing": false
+      },
+      "minSkill": {
+        "0": "ok",
+        "0.05": "blocked-by-quality",
+        "0.1": "blocked-by-quality",
+        "0.15": "blocked-by-quality",
+        "0.2": "blocked-by-quality"
+      },
+      "design": {
+        "1x5": {
+          "status": "blocked-by-quality",
+          "skill": 0.081,
+          "windows": [
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.081
+            }
+          ],
+          "warnings": []
+        },
+        "2x5": {
+          "status": "blocked-by-quality",
+          "skill": 0.043,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": -0.002
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.081
+            }
+          ],
+          "warnings": []
+        },
+        "3x5": {
+          "status": "blocked-by-quality",
+          "skill": 0.043,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": -0.002
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.081
+            }
+          ],
+          "warnings": []
+        },
+        "2x4": {
+          "status": "blocked-by-quality",
+          "skill": 0.03,
+          "windows": [
+            {
+              "years": [
+                2017,
+                2020
+              ],
+              "skill": -0.208
+            },
+            {
+              "years": [
+                2021,
+                2024
+              ],
+              "skill": 0.199
+            }
+          ],
+          "warnings": []
+        },
+        "2x6": {
+          "status": "blocked-by-quality",
+          "skill": 0.012,
+          "windows": [
+            {
+              "years": [
+                2013,
+                2018
+              ],
+              "skill": 0.001
+            },
+            {
+              "years": [
+                2019,
+                2024
+              ],
+              "skill": 0.021
+            }
+          ],
+          "warnings": []
+        }
+      },
+      "diagnosticAlpha": {
+        "0.01": [],
+        "0.05": [],
+        "0.1": []
+      },
+      "fieldFdr": {
+        "0.05": 5,
+        "0.1": 6,
+        "0.2": 8
+      }
+    },
+    {
+      "state": "Puebla",
+      "variable": "PRECTOTCORR",
+      "cells": 21,
+      "regionalVerdict": "not-detectable",
+      "published": {
+        "status": "blocked-by-quality",
+        "skill": -0.346,
+        "coverage95": 0.7,
+        "windows": [
+          {
+            "years": [
+              2015,
+              2019
+            ],
+            "skill": -0.279
+          },
+          {
+            "years": [
+              2020,
+              2024
+            ],
+            "skill": -0.389
+          }
+        ],
+        "warnings": [],
+        "curvatureP": 0.0325,
+        "varianceP": 0.0701,
+        "varianceGrowing": true
+      },
+      "minSkill": {
+        "0": "blocked-by-quality",
+        "0.05": "blocked-by-quality",
+        "0.1": "blocked-by-quality",
+        "0.15": "blocked-by-quality",
+        "0.2": "blocked-by-quality"
+      },
+      "design": {
+        "1x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.389,
+          "windows": [
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.389
+            }
+          ],
+          "warnings": []
+        },
+        "2x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.346,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": -0.279
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.389
+            }
+          ],
+          "warnings": []
+        },
+        "3x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.346,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": -0.279
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.389
+            }
+          ],
+          "warnings": []
+        },
+        "2x4": {
+          "status": "blocked-by-quality",
+          "skill": -0.231,
+          "windows": [
+            {
+              "years": [
+                2017,
+                2020
+              ],
+              "skill": -0.247
+            },
+            {
+              "years": [
+                2021,
+                2024
+              ],
+              "skill": -0.22
+            }
+          ],
+          "warnings": []
+        },
+        "2x6": {
+          "status": "blocked-by-quality",
+          "skill": -0.307,
+          "windows": [
+            {
+              "years": [
+                2013,
+                2018
+              ],
+              "skill": 0.39
+            },
+            {
+              "years": [
+                2019,
+                2024
+              ],
+              "skill": -0.703
+            }
+          ],
+          "warnings": []
+        }
+      },
+      "diagnosticAlpha": {
+        "0.01": [],
+        "0.05": [
+          "curvature"
+        ],
+        "0.1": [
+          "curvature",
+          "growing-variance"
+        ]
+      },
+      "fieldFdr": {
+        "0.05": 6,
+        "0.1": 6,
+        "0.2": 9
+      }
+    },
+    {
+      "state": "Tlaxcala",
+      "variable": "T2M",
+      "cells": 4,
+      "regionalVerdict": "weak",
+      "published": {
+        "status": "blocked-by-quality",
+        "skill": 0.047,
+        "coverage95": 0.7,
+        "windows": [
+          {
+            "years": [
+              2015,
+              2019
+            ],
+            "skill": -0.113
+          },
+          {
+            "years": [
+              2020,
+              2024
+            ],
+            "skill": 0.082
+          }
+        ],
+        "warnings": [],
+        "curvatureP": 0.0018,
+        "varianceP": 0.0421,
+        "varianceGrowing": true
+      },
+      "minSkill": {
+        "0": "ok",
+        "0.05": "blocked-by-quality",
+        "0.1": "blocked-by-quality",
+        "0.15": "blocked-by-quality",
+        "0.2": "blocked-by-quality"
+      },
+      "design": {
+        "1x5": {
+          "status": "blocked-by-quality",
+          "skill": 0.082,
+          "windows": [
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.082
+            }
+          ],
+          "warnings": []
+        },
+        "2x5": {
+          "status": "blocked-by-quality",
+          "skill": 0.047,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": -0.113
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.082
+            }
+          ],
+          "warnings": []
+        },
+        "3x5": {
+          "status": "blocked-by-quality",
+          "skill": 0.047,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": -0.113
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.082
+            }
+          ],
+          "warnings": []
+        },
+        "2x4": {
+          "status": "blocked-by-quality",
+          "skill": 0.089,
+          "windows": [
+            {
+              "years": [
+                2017,
+                2020
+              ],
+              "skill": -0.072
+            },
+            {
+              "years": [
+                2021,
+                2024
+              ],
+              "skill": 0.142
+            }
+          ],
+          "warnings": []
+        },
+        "2x6": {
+          "status": "blocked-by-quality",
+          "skill": -0.098,
+          "windows": [
+            {
+              "years": [
+                2013,
+                2018
+              ],
+              "skill": -0.203
+            },
+            {
+              "years": [
+                2019,
+                2024
+              ],
+              "skill": -0.096
+            }
+          ],
+          "warnings": []
+        }
+      },
+      "diagnosticAlpha": {
+        "0.01": [
+          "curvature"
+        ],
+        "0.05": [
+          "curvature",
+          "growing-variance"
+        ],
+        "0.1": [
+          "curvature",
+          "growing-variance"
+        ]
+      },
+      "fieldFdr": {
+        "0.05": 3,
+        "0.1": 3,
+        "0.2": 4
+      }
+    },
+    {
+      "state": "Tlaxcala",
+      "variable": "TXx",
+      "cells": 4,
+      "regionalVerdict": "not-detectable",
+      "published": {
+        "status": "blocked-by-quality",
+        "skill": -0.175,
+        "coverage95": 0.9,
+        "windows": [
+          {
+            "years": [
+              2015,
+              2019
+            ],
+            "skill": 0.121
+          },
+          {
+            "years": [
+              2020,
+              2024
+            ],
+            "skill": -0.465
+          }
+        ],
+        "warnings": [],
+        "curvatureP": 0.0266,
+        "varianceP": 0.8301,
+        "varianceGrowing": false
+      },
+      "minSkill": {
+        "0": "blocked-by-quality",
+        "0.05": "blocked-by-quality",
+        "0.1": "blocked-by-quality",
+        "0.15": "blocked-by-quality",
+        "0.2": "blocked-by-quality"
+      },
+      "design": {
+        "1x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.465,
+          "windows": [
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.465
+            }
+          ],
+          "warnings": []
+        },
+        "2x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.175,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": 0.121
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.465
+            }
+          ],
+          "warnings": []
+        },
+        "3x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.175,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": 0.121
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.465
+            }
+          ],
+          "warnings": []
+        },
+        "2x4": {
+          "status": "blocked-by-quality",
+          "skill": -0.441,
+          "windows": [
+            {
+              "years": [
+                2017,
+                2020
+              ],
+              "skill": -0.908
+            },
+            {
+              "years": [
+                2021,
+                2024
+              ],
+              "skill": -0.379
+            }
+          ],
+          "warnings": []
+        },
+        "2x6": {
+          "status": "blocked-by-quality",
+          "skill": -0.273,
+          "windows": [
+            {
+              "years": [
+                2013,
+                2018
+              ],
+              "skill": 0.176
+            },
+            {
+              "years": [
+                2019,
+                2024
+              ],
+              "skill": -0.673
+            }
+          ],
+          "warnings": []
+        }
+      },
+      "diagnosticAlpha": {
+        "0.01": [],
+        "0.05": [
+          "curvature"
+        ],
+        "0.1": [
+          "curvature"
+        ]
+      },
+      "fieldFdr": {
+        "0.05": 0,
+        "0.1": 0,
+        "0.2": 0
+      }
+    },
+    {
+      "state": "Tlaxcala",
+      "variable": "TNn",
+      "cells": 4,
+      "regionalVerdict": "robust",
+      "published": {
+        "status": "blocked-by-quality",
+        "skill": 0.083,
+        "coverage95": 1,
+        "windows": [
+          {
+            "years": [
+              2015,
+              2019
+            ],
+            "skill": -0.014
+          },
+          {
+            "years": [
+              2020,
+              2024
+            ],
+            "skill": 0.149
+          }
+        ],
+        "warnings": [],
+        "curvatureP": 0.0396,
+        "varianceP": 0.7424,
+        "varianceGrowing": true
+      },
+      "minSkill": {
+        "0": "ok",
+        "0.05": "ok",
+        "0.1": "blocked-by-quality",
+        "0.15": "blocked-by-quality",
+        "0.2": "blocked-by-quality"
+      },
+      "design": {
+        "1x5": {
+          "status": "ok",
+          "skill": 0.149,
+          "windows": [
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.149
+            }
+          ],
+          "warnings": [
+            "curvature"
+          ]
+        },
+        "2x5": {
+          "status": "blocked-by-quality",
+          "skill": 0.083,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": -0.014
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.149
+            }
+          ],
+          "warnings": []
+        },
+        "3x5": {
+          "status": "blocked-by-quality",
+          "skill": 0.083,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": -0.014
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.149
+            }
+          ],
+          "warnings": []
+        },
+        "2x4": {
+          "status": "ok",
+          "skill": 0.16,
+          "windows": [
+            {
+              "years": [
+                2017,
+                2020
+              ],
+              "skill": 0.013
+            },
+            {
+              "years": [
+                2021,
+                2024
+              ],
+              "skill": 0.291
+            }
+          ],
+          "warnings": [
+            "curvature"
+          ]
+        },
+        "2x6": {
+          "status": "blocked-by-quality",
+          "skill": -0.039,
+          "windows": [
+            {
+              "years": [
+                2013,
+                2018
+              ],
+              "skill": -0.004
+            },
+            {
+              "years": [
+                2019,
+                2024
+              ],
+              "skill": -0.051
+            }
+          ],
+          "warnings": []
+        }
+      },
+      "diagnosticAlpha": {
+        "0.01": [],
+        "0.05": [
+          "curvature"
+        ],
+        "0.1": [
+          "curvature"
+        ]
+      },
+      "fieldFdr": {
+        "0.05": 3,
+        "0.1": 3,
+        "0.2": 4
+      }
+    },
+    {
+      "state": "Tlaxcala",
+      "variable": "PRECTOTCORR",
+      "cells": 4,
+      "regionalVerdict": "probable",
+      "published": {
+        "status": "blocked-by-quality",
+        "skill": 0.197,
+        "coverage95": 0.8,
+        "windows": [
+          {
+            "years": [
+              2015,
+              2019
+            ],
+            "skill": 0.336
+          },
+          {
+            "years": [
+              2020,
+              2024
+            ],
+            "skill": -0.063
+          }
+        ],
+        "warnings": [],
+        "curvatureP": 0.4576,
+        "varianceP": 0.0158,
+        "varianceGrowing": true
+      },
+      "minSkill": {
+        "0": "blocked-by-quality",
+        "0.05": "blocked-by-quality",
+        "0.1": "blocked-by-quality",
+        "0.15": "blocked-by-quality",
+        "0.2": "blocked-by-quality"
+      },
+      "design": {
+        "1x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.063,
+          "windows": [
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.063
+            }
+          ],
+          "warnings": []
+        },
+        "2x5": {
+          "status": "blocked-by-quality",
+          "skill": 0.197,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": 0.336
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.063
+            }
+          ],
+          "warnings": []
+        },
+        "3x5": {
+          "status": "blocked-by-quality",
+          "skill": 0.197,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": 0.336
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.063
+            }
+          ],
+          "warnings": []
+        },
+        "2x4": {
+          "status": "ok",
+          "skill": 0.191,
+          "windows": [
+            {
+              "years": [
+                2017,
+                2020
+              ],
+              "skill": 0.357
+            },
+            {
+              "years": [
+                2021,
+                2024
+              ],
+              "skill": 0.021
+            }
+          ],
+          "warnings": [
+            "growing-variance"
+          ]
+        },
+        "2x6": {
+          "status": "blocked-by-quality",
+          "skill": 0.031,
+          "windows": [
+            {
+              "years": [
+                2013,
+                2018
+              ],
+              "skill": 0.204
+            },
+            {
+              "years": [
+                2019,
+                2024
+              ],
+              "skill": -0.353
+            }
+          ],
+          "warnings": []
+        }
+      },
+      "diagnosticAlpha": {
+        "0.01": [],
+        "0.05": [
+          "growing-variance"
+        ],
+        "0.1": [
+          "growing-variance"
+        ]
+      },
+      "fieldFdr": {
+        "0.05": 1,
+        "0.1": 1,
+        "0.2": 2
+      }
+    },
+    {
+      "state": "Oaxaca",
+      "variable": "T2M",
+      "cells": 38,
+      "regionalVerdict": "robust",
+      "published": {
+        "status": "ok",
+        "skill": 0.265,
+        "coverage95": 0.5,
+        "windows": [
+          {
+            "years": [
+              2015,
+              2019
+            ],
+            "skill": 0.044
+          },
+          {
+            "years": [
+              2020,
+              2024
+            ],
+            "skill": 0.369
+          }
+        ],
+        "warnings": [
+          "interval-undercoverage",
+          "curvature",
+          "growing-variance"
+        ],
+        "curvatureP": 0.0016,
+        "varianceP": 0.0339,
+        "varianceGrowing": true
+      },
+      "minSkill": {
+        "0": "ok",
+        "0.05": "ok",
+        "0.1": "ok",
+        "0.15": "ok",
+        "0.2": "ok"
+      },
+      "design": {
+        "1x5": {
+          "status": "ok",
+          "skill": 0.369,
+          "windows": [
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.369
+            }
+          ],
+          "warnings": [
+            "interval-undercoverage",
+            "curvature",
+            "growing-variance"
+          ]
+        },
+        "2x5": {
+          "status": "ok",
+          "skill": 0.265,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": 0.044
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.369
+            }
+          ],
+          "warnings": [
+            "interval-undercoverage",
+            "curvature",
+            "growing-variance"
+          ]
+        },
+        "3x5": {
+          "status": "ok",
+          "skill": 0.265,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": 0.044
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.369
+            }
+          ],
+          "warnings": [
+            "interval-undercoverage",
+            "curvature",
+            "growing-variance"
+          ]
+        },
+        "2x4": {
+          "status": "ok",
+          "skill": 0.388,
+          "windows": [
+            {
+              "years": [
+                2017,
+                2020
+              ],
+              "skill": 0.41
+            },
+            {
+              "years": [
+                2021,
+                2024
+              ],
+              "skill": 0.381
+            }
+          ],
+          "warnings": [
+            "interval-undercoverage",
+            "curvature",
+            "growing-variance"
+          ]
+        },
+        "2x6": {
+          "status": "ok",
+          "skill": 0.232,
+          "windows": [
+            {
+              "years": [
+                2013,
+                2018
+              ],
+              "skill": -0.031
+            },
+            {
+              "years": [
+                2019,
+                2024
+              ],
+              "skill": 0.291
+            }
+          ],
+          "warnings": [
+            "unstable-skill",
+            "interval-undercoverage",
+            "curvature",
+            "growing-variance"
+          ]
+        }
+      },
+      "diagnosticAlpha": {
+        "0.01": [
+          "curvature"
+        ],
+        "0.05": [
+          "curvature",
+          "growing-variance"
+        ],
+        "0.1": [
+          "curvature",
+          "growing-variance"
+        ]
+      },
+      "fieldFdr": {
+        "0.05": 37,
+        "0.1": 37,
+        "0.2": 38
+      }
+    },
+    {
+      "state": "Oaxaca",
+      "variable": "TXx",
+      "cells": 38,
+      "regionalVerdict": "weak",
+      "published": {
+        "status": "blocked-by-quality",
+        "skill": -0.068,
+        "coverage95": 0.9,
+        "windows": [
+          {
+            "years": [
+              2015,
+              2019
+            ],
+            "skill": 0.001
+          },
+          {
+            "years": [
+              2020,
+              2024
+            ],
+            "skill": -0.083
+          }
+        ],
+        "warnings": [],
+        "curvatureP": 0.0167,
+        "varianceP": 0.2753,
+        "varianceGrowing": true
+      },
+      "minSkill": {
+        "0": "blocked-by-quality",
+        "0.05": "blocked-by-quality",
+        "0.1": "blocked-by-quality",
+        "0.15": "blocked-by-quality",
+        "0.2": "blocked-by-quality"
+      },
+      "design": {
+        "1x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.083,
+          "windows": [
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.083
+            }
+          ],
+          "warnings": []
+        },
+        "2x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.068,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": 0.001
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.083
+            }
+          ],
+          "warnings": []
+        },
+        "3x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.068,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": 0.001
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.083
+            }
+          ],
+          "warnings": []
+        },
+        "2x4": {
+          "status": "blocked-by-quality",
+          "skill": 0.037,
+          "windows": [
+            {
+              "years": [
+                2017,
+                2020
+              ],
+              "skill": -0.009
+            },
+            {
+              "years": [
+                2021,
+                2024
+              ],
+              "skill": 0.055
+            }
+          ],
+          "warnings": []
+        },
+        "2x6": {
+          "status": "blocked-by-quality",
+          "skill": -0.169,
+          "windows": [
+            {
+              "years": [
+                2013,
+                2018
+              ],
+              "skill": -0.069
+            },
+            {
+              "years": [
+                2019,
+                2024
+              ],
+              "skill": -0.19
+            }
+          ],
+          "warnings": []
+        }
+      },
+      "diagnosticAlpha": {
+        "0.01": [],
+        "0.05": [
+          "curvature"
+        ],
+        "0.1": [
+          "curvature"
+        ]
+      },
+      "fieldFdr": {
+        "0.05": 2,
+        "0.1": 2,
+        "0.2": 10
+      }
+    },
+    {
+      "state": "Oaxaca",
+      "variable": "TNn",
+      "cells": 38,
+      "regionalVerdict": "not-detectable",
+      "published": {
+        "status": "blocked-by-quality",
+        "skill": -0.154,
+        "coverage95": 1,
+        "windows": [
+          {
+            "years": [
+              2015,
+              2019
+            ],
+            "skill": 0.041
+          },
+          {
+            "years": [
+              2020,
+              2024
+            ],
+            "skill": -0.245
+          }
+        ],
+        "warnings": [],
+        "curvatureP": 0.1782,
+        "varianceP": 0.7801,
+        "varianceGrowing": false
+      },
+      "minSkill": {
+        "0": "blocked-by-quality",
+        "0.05": "blocked-by-quality",
+        "0.1": "blocked-by-quality",
+        "0.15": "blocked-by-quality",
+        "0.2": "blocked-by-quality"
+      },
+      "design": {
+        "1x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.245,
+          "windows": [
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.245
+            }
+          ],
+          "warnings": []
+        },
+        "2x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.154,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": 0.041
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.245
+            }
+          ],
+          "warnings": []
+        },
+        "3x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.154,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": 0.041
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": -0.245
+            }
+          ],
+          "warnings": []
+        },
+        "2x4": {
+          "status": "blocked-by-quality",
+          "skill": -0.017,
+          "windows": [
+            {
+              "years": [
+                2017,
+                2020
+              ],
+              "skill": -0.013
+            },
+            {
+              "years": [
+                2021,
+                2024
+              ],
+              "skill": -0.021
+            }
+          ],
+          "warnings": []
+        },
+        "2x6": {
+          "status": "blocked-by-quality",
+          "skill": -0.177,
+          "windows": [
+            {
+              "years": [
+                2013,
+                2018
+              ],
+              "skill": 0.043
+            },
+            {
+              "years": [
+                2019,
+                2024
+              ],
+              "skill": -0.278
+            }
+          ],
+          "warnings": []
+        }
+      },
+      "diagnosticAlpha": {
+        "0.01": [],
+        "0.05": [],
+        "0.1": []
+      },
+      "fieldFdr": {
+        "0.05": 3,
+        "0.1": 3,
+        "0.2": 7
+      }
+    },
+    {
+      "state": "Oaxaca",
+      "variable": "PRECTOTCORR",
+      "cells": 38,
+      "regionalVerdict": "not-detectable",
+      "published": {
+        "status": "blocked-by-quality",
+        "skill": -0.211,
+        "coverage95": 0.9,
+        "windows": [
+          {
+            "years": [
+              2015,
+              2019
+            ],
+            "skill": -0.389
+          },
+          {
+            "years": [
+              2020,
+              2024
+            ],
+            "skill": 0.012
+          }
+        ],
+        "warnings": [],
+        "curvatureP": 0.3499,
+        "varianceP": 0.2941,
+        "varianceGrowing": true
+      },
+      "minSkill": {
+        "0": "blocked-by-quality",
+        "0.05": "blocked-by-quality",
+        "0.1": "blocked-by-quality",
+        "0.15": "blocked-by-quality",
+        "0.2": "blocked-by-quality"
+      },
+      "design": {
+        "1x5": {
+          "status": "blocked-by-quality",
+          "skill": 0.012,
+          "windows": [
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.012
+            }
+          ],
+          "warnings": []
+        },
+        "2x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.211,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": -0.389
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.012
+            }
+          ],
+          "warnings": []
+        },
+        "3x5": {
+          "status": "blocked-by-quality",
+          "skill": -0.211,
+          "windows": [
+            {
+              "years": [
+                2015,
+                2019
+              ],
+              "skill": -0.389
+            },
+            {
+              "years": [
+                2020,
+                2024
+              ],
+              "skill": 0.012
+            }
+          ],
+          "warnings": []
+        },
+        "2x4": {
+          "status": "blocked-by-quality",
+          "skill": 0.018,
+          "windows": [
+            {
+              "years": [
+                2017,
+                2020
+              ],
+              "skill": 0.066
+            },
+            {
+              "years": [
+                2021,
+                2024
+              ],
+              "skill": -0.019
+            }
+          ],
+          "warnings": []
+        },
+        "2x6": {
+          "status": "blocked-by-quality",
+          "skill": -0.341,
+          "windows": [
+            {
+              "years": [
+                2013,
+                2018
+              ],
+              "skill": -0.555
+            },
+            {
+              "years": [
+                2019,
+                2024
+              ],
+              "skill": -0.086
+            }
+          ],
+          "warnings": []
+        }
+      },
+      "diagnosticAlpha": {
+        "0.01": [],
+        "0.05": [],
+        "0.1": []
+      },
+      "fieldFdr": {
+        "0.05": 7,
+        "0.1": 9,
+        "0.2": 13
+      }
+    }
+  ],
+  "seasons": [
+    {
+      "region": "South-central Mexico (Puebla, Tlaxcala, Oaxaca)",
+      "cells": 357,
+      "wetShareMedian": 0.798,
+      "wetShareRange": [
+        0.625,
+        0.965
+      ],
+      "withSeasons": {
+        "0.5": {
+          "50": 1,
+          "100": 1,
+          "200": 1
+        },
+        "0.55": {
+          "50": 1,
+          "100": 1,
+          "200": 1
+        },
+        "0.6": {
+          "50": 1,
+          "100": 1,
+          "200": 1
+        },
+        "0.65": {
+          "50": 0.975,
+          "100": 0.975,
+          "200": 0.975
+        },
+        "0.7": {
+          "50": 0.846,
+          "100": 0.846,
+          "200": 0.846
+        }
+      }
+    },
+    {
+      "region": "Ireland (rain all year, winter maximum)",
+      "cells": 99,
+      "wetShareMedian": 0.585,
+      "wetShareRange": [
+        0.548,
+        0.614
+      ],
+      "withSeasons": {
+        "0.5": {
+          "50": 1,
+          "100": 1,
+          "200": 1
+        },
+        "0.55": {
+          "50": 0.96,
+          "100": 0.96,
+          "200": 0.96
+        },
+        "0.6": {
+          "50": 0.202,
+          "100": 0.202,
+          "200": 0.202
+        },
+        "0.65": {
+          "50": 0,
+          "100": 0,
+          "200": 0
+        },
+        "0.7": {
+          "50": 0,
+          "100": 0,
+          "200": 0
+        }
+      }
+    },
+    {
+      "region": "Central Amazon (rain all year)",
+      "cells": 99,
+      "wetShareMedian": 0.655,
+      "wetShareRange": [
+        0.594,
+        0.718
+      ],
+      "withSeasons": {
+        "0.5": {
+          "50": 1,
+          "100": 1,
+          "200": 1
+        },
+        "0.55": {
+          "50": 1,
+          "100": 1,
+          "200": 1
+        },
+        "0.6": {
+          "50": 0.96,
+          "100": 0.96,
+          "200": 0.96
+        },
+        "0.65": {
+          "50": 0.545,
+          "100": 0.545,
+          "200": 0.545
+        },
+        "0.7": {
+          "50": 0.081,
+          "100": 0.081,
+          "200": 0.081
+        }
+      }
+    },
+    {
+      "region": "Central Sahara (hyper-arid)",
+      "cells": 88,
+      "wetShareMedian": 0.625,
+      "wetShareRange": [
+        0.533,
+        0.704
+      ],
+      "withSeasons": {
+        "0.5": {
+          "50": 0.136,
+          "100": 0,
+          "200": 0
+        },
+        "0.55": {
+          "50": 0.136,
+          "100": 0,
+          "200": 0
+        },
+        "0.6": {
+          "50": 0.136,
+          "100": 0,
+          "200": 0
+        },
+        "0.65": {
+          "50": 0.114,
+          "100": 0,
+          "200": 0
+        },
+        "0.7": {
+          "50": 0,
+          "100": 0,
+          "200": 0
+        }
+      }
+    }
+  ],
+  "completeness": [
+    {
+      "parameter": "T2M",
+      "cells": 357,
+      "months": 188496,
+      "missing": 0
+    },
+    {
+      "parameter": "T2M_MAX",
+      "cells": 357,
+      "months": 188496,
+      "missing": 0
+    },
+    {
+      "parameter": "T2M_MIN",
+      "cells": 357,
+      "months": 188496,
+      "missing": 0
+    },
+    {
+      "parameter": "PRECTOTCORR",
+      "cells": 357,
+      "months": 188496,
+      "missing": 0
+    }
+  ]
+}

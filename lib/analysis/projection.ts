@@ -13,9 +13,13 @@
  *   most recent window (the one the extrapolation starts from), the variable is `blocked-by-quality` for this request
  *   and no projection is drawn; intervals that miss too many held-out years, or a window where the line
  *   did worse than the mean, carry a warning;
- * - every value comes with a 95% prediction interval for a new year (widened for AR(1) residuals), never a bare line.
+ * - every value comes with a 95% prediction interval for a new year (widened for AR(1) residuals), never a bare line;
+ * - the straight line itself is checked on the regional series (lib/analysis/diagnostics.ts): significant curvature or
+ *   a scatter that grows over time adds a warning, because both make the extrapolation less trustworthy than its
+ *   interval suggests.
  */
 import type { AnnualPoint } from './annual-rules'
+import { lineDiagnostics, type LineDiagnostics } from './diagnostics'
 import { autocorrelation, olsFit, type XY } from './robust-stats'
 import { studentTQuantile } from './trend'
 import type { ProjectionRule } from '../variables/catalog'
@@ -69,7 +73,7 @@ export type HoldoutValidation = {
 export type ProjectionStatus = 'ok' | 'blocked-by-quality' | 'insufficient-data'
 
 /** Shown with the projection; they never hide it (only status does). */
-export type ProjectionWarning = { code: 'interval-undercoverage' | 'unstable-skill'; es: string; en: string }
+export type ProjectionWarning = { code: 'interval-undercoverage' | 'unstable-skill' | 'curvature' | 'growing-variance'; es: string; en: string }
 
 export type ProjectionSummary = {
   interpretation: 'exploratory-extrapolation'
@@ -80,6 +84,8 @@ export type ProjectionSummary = {
   /** Slider range: inside fitYears the map shows the fitted line, after it the extrapolation. */
   horizon: [number, number]
   holdout: HoldoutValidation | null
+  /** Curvature and changing-variance checks of the straight line on the regional series over fitYears. */
+  diagnostics: LineDiagnostics | null
   /** Fixed color domain over every cell and every slider year, so a color change always means a value change. */
   domain: { min: number; max: number } | null
   /** Cells whose line rises / falls (sign of the slope). */
@@ -221,6 +227,27 @@ export function projectCells(cellIds: string[], annualByCell: Map<string, Annual
     })
   }
 
+  // Is a straight line the right shape? Checked on the regional series over the whole request window.
+  const fitted = usableYears(regional, startYear, endYear)
+  const diagnostics = fitted.length >= 3 ? lineDiagnostics(toXY(fitted)) : null
+  if (status === 'ok' && diagnostics?.curvature && diagnostics.curvature.pValue < rule.diagnosticAlpha) {
+    const up = diagnostics.curvature.coefficient > 0
+    const p = diagnostics.curvature.pValue < 0.001 ? '< 0.001' : `= ${diagnostics.curvature.pValue.toFixed(3)}`
+    warnings.push({
+      code: 'curvature',
+      es: `La serie regional se curva hacia ${up ? 'arriba' : 'abajo'} (término cuadrático, p ${p}): una recta la sigue mal, y al extenderla tiende a quedar ${up ? 'por debajo' : 'por encima'} de los valores reales.`,
+      en: `The regional series bends ${up ? 'upward' : 'downward'} (quadratic term, p ${p}): a straight line follows it poorly and, extended, tends to run ${up ? 'below' : 'above'} the real values.`,
+    })
+  }
+  if (status === 'ok' && diagnostics?.variance && diagnostics.variance.pValue < rule.diagnosticAlpha && diagnostics.variance.trend > 0) {
+    const p = diagnostics.variance.pValue < 0.001 ? '< 0.001' : `= ${diagnostics.variance.pValue.toFixed(3)}`
+    warnings.push({
+      code: 'growing-variance',
+      es: `La dispersión de un año a otro crece con el tiempo (Breusch–Pagan, p ${p}): el intervalo de 95 % supone una dispersión constante y queda demasiado angosto en los años proyectados.`,
+      en: `Year-to-year scatter grows over time (Breusch–Pagan, p ${p}): the 95% interval assumes constant scatter and is too narrow in the projected years.`,
+    })
+  }
+
   const horizon: [number, number] = [startYear, endYear + rule.horizonYears]
   // A straight line reaches its extremes at the ends of the slider range.
   const ends = [...fits.values()].flatMap((fit) => [predict(fit, horizon[0], rule.floor).value, predict(fit, horizon[1], rule.floor).value])
@@ -228,7 +255,7 @@ export function projectCells(cellIds: string[], annualByCell: Map<string, Annual
   const slopes = [...fits.values()].map((fit) => fit.slopePerYear)
 
   const summary: ProjectionSummary = {
-    interpretation: 'exploratory-extrapolation', method: 'ols', status, fitYears: [startYear, endYear], horizon, holdout, domain,
+    interpretation: 'exploratory-extrapolation', method: 'ols', status, fitYears: [startYear, endYear], horizon, holdout, diagnostics, domain,
     rising: slopes.filter((slope) => slope > 0).length, falling: slopes.filter((slope) => slope < 0).length, rule, reason, warnings,
   }
   return { summary, fits }

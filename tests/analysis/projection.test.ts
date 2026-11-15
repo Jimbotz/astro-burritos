@@ -4,7 +4,7 @@ import { olsFit } from '../../lib/analysis/robust-stats'
 import type { AnnualPoint } from '../../lib/analysis/annual-rules'
 import { getVariable, PROJECTION_VARIABLE_IDS, type ProjectionRule } from '../../lib/variables/catalog'
 
-const RULE: ProjectionRule = { method: 'ols', holdoutYears: 5, holdoutWindows: 2, horizonYears: 10, minFitYears: 10, minCoverage: 0.8, minSkill: 0.1, floor: null, rationale: { es: '', en: '' } }
+const RULE: ProjectionRule = { method: 'ols', holdoutYears: 5, holdoutWindows: 2, horizonYears: 10, minFitYears: 10, minCoverage: 0.8, minSkill: 0.1, diagnosticAlpha: 0.05, floor: null, rationale: { es: '', en: '' } }
 const years = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => a + i)
 const annual = (values: Array<[number, number]>): AnnualPoint[] => values.map(([year, value]) => ({ year, value, validCount: 12, expectedCount: 12, complete: true }))
 // Deterministic small noise so tests never depend on a random seed.
@@ -103,8 +103,9 @@ describe('validated projection of a grid', () => {
     expect(summary.holdout!.skill).toBeGreaterThan(0.1)
     expect(summary.holdout!.bias).toBeGreaterThan(0)
     expect(summary.holdout!.coverage95).toBeLessThan(0.8)
-    expect(summary.warnings.map((w) => w.code)).toEqual(['interval-undercoverage'])
-    expect(summary.warnings[0].en).toMatch(/ran above the line/)
+    // The jump also bends the regional series upward, so the curvature check flags it too.
+    expect(summary.warnings.map((w) => w.code)).toEqual(expect.arrayContaining(['interval-undercoverage', 'curvature']))
+    expect(summary.warnings.find((w) => w.code === 'interval-undercoverage')!.en).toMatch(/ran above the line/)
   })
 
   it('blocks when the line did worse than the average in the most recent window, even if the pooled skill is high', () => {

@@ -105,6 +105,8 @@ export type ProjectionRule = {
   minCoverage: number
   /** Minimum skill (1 − RMSE line / RMSE mean on the held-out regional years); below it the projection is blocked. */
   minSkill: number
+  /** Significance level of the curvature and changing-variance checks on the regional series (warnings only). */
+  diagnosticAlpha: number
   /** Physical lower bound of the annual value (rain cannot be negative); null when unbounded. */
   floor: number | null
   rationale: { es: string; en: string }
@@ -282,10 +284,10 @@ const BASE_VARIABLES: Array<Omit<VariableDescriptor, 'profile'>> = [
  * Projection rules for the four step 1 variables. Same validation for all (OLS line, last 5 years held out, horizon
  * 10 years past the data), with each variable's own physical floor and rationale. Every other variable is never projected.
  */
-const PROJECTION_BASE = { method: 'ols', holdoutYears: 5, holdoutWindows: 2, horizonYears: 10, minFitYears: 10, minCoverage: 0.8, minSkill: 0.1 } as const
+const PROJECTION_BASE = { method: 'ols', holdoutYears: 5, holdoutWindows: 2, horizonYears: 10, minFitYears: 10, minCoverage: 0.8, minSkill: 0.1, diagnosticAlpha: 0.05 } as const
 const PROJECTION: Partial<Record<VariableId, ProjectionRule>> = {
   T2M: { ...PROJECTION_BASE, floor: null,
-    rationale: { es: 'Señal continua y casi lineal: la recta OLS se valida con los últimos 5 años antes de extenderla.', en: 'Continuous, near-linear signal: the OLS line is validated on the last 5 years before it is extended.' } },
+    rationale: { es: 'Señal continua y casi lineal: la recta OLS se valida en dos ventanas de 5 años antes de extenderla.', en: 'Continuous, near-linear signal: the OLS line is validated on two 5-year windows before it is extended.' } },
   TXx: { ...PROJECTION_BASE, floor: null,
     rationale: { es: 'Un solo día extremo por año: más ruidoso, así que el intervalo de predicción es ancho y la recta igual debe superar al promedio.', en: 'A single extreme day per year: noisier, so the prediction interval is wide and the line must still beat the average.' } },
   TNn: { ...PROJECTION_BASE, floor: null,

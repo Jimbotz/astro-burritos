@@ -4,7 +4,7 @@
  * Rules (validated in the v2 audit):
  * - POWER's YYYY13 annual record, fill values and non-numeric values are dropped; nothing is imputed.
  * - A year counts only when it is complete: 12/12 months (or every day for daily rules).
- *   This is stricter than the legacy /api/series, which still accepts 11/12 (finding A1).
+ *   The legacy /api/series applies the same rule since finding A1 was fixed (it used to accept 11/12).
  * - Temperatures/humidity: day-weighted mean. Precipitation: mm/day × calendar days.
  */
 import type { AggregationRule, SeasonId } from '../variables/catalog'
@@ -32,7 +32,7 @@ export function daysInYear(year: number) {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365
 }
 
-const monthKey = (year: number, month: number) => `${year}-${String(month).padStart(2, '0')}`
+export const monthKey = (year: number, month: number) => `${year}-${String(month).padStart(2, '0')}`
 
 /** Parses a POWER parameter object (YYYYMM or YYYYMMDD keys) into YYYY-MM / YYYY-MM-DD keys. */
 export function parsePowerSeries(raw: Record<string, unknown> | undefined, fillValue = -999): SeriesMap {
@@ -219,12 +219,15 @@ function seasonDefinition(id: SeasonId, months: number[]): SeasonDefinition {
   }
 }
 
-/** Wet and dry season of one cell, or null when the climatology is missing or rain has no clear season. */
-export function cellSeasons(precip: SeriesMap | undefined): CellSeasons | null {
+/**
+ * Wet and dry season of one cell, or null when the climatology is missing or rain has no clear season. The thresholds
+ * default to MIN_WET_SHARE and MIN_ANNUAL_RAIN_MM; scripts/threshold-sensitivity.ts varies them.
+ */
+export function cellSeasons(precip: SeriesMap | undefined, thresholds: { minWetShare: number; minAnnualRainMm: number } = { minWetShare: MIN_WET_SHARE, minAnnualRainMm: MIN_ANNUAL_RAIN_MM }): CellSeasons | null {
   const climatology = rainClimatology(precip)
   if (!climatology) return null
   const annual = climatology.reduce((sum, value) => sum + value, 0)
-  if (!(annual >= MIN_ANNUAL_RAIN_MM)) return null
+  if (!(annual >= thresholds.minAnnualRainMm)) return null
   let wettestStart = 1
   let wettest = -Infinity
   for (let start = 1; start <= 12; start += 1) {
@@ -232,9 +235,9 @@ export function cellSeasons(precip: SeriesMap | undefined): CellSeasons | null {
     if (total > wettest) { wettest = total; wettestStart = start }
   }
   const wetShare = wettest / annual
-  if (wetShare < MIN_WET_SHARE) return null
+  if (wetShare < thresholds.minWetShare) return null
   return {
-    method: 'wettest-6-months', basePeriod: '1991-2020', minWetShare: MIN_WET_SHARE, wetShare,
+    method: 'wettest-6-months', basePeriod: '1991-2020', minWetShare: thresholds.minWetShare, wetShare,
     wet: seasonDefinition('wet', sixMonths(wettestStart)),
     dry: seasonDefinition('dry', sixMonths(((wettestStart + 5) % 12) + 1)),
   }

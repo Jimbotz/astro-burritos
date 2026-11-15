@@ -2,12 +2,12 @@
 
 import { Layers, LoaderCircle } from 'lucide-react'
 import type { CellResult, RegionResponse, VariableDescriptor, VariableId } from '@/lib/api/v2'
-import { predict } from '@/lib/analysis/projection'
 import { VARIABLES } from '@/lib/variables/catalog'
 import { Term } from '@/components/term'
 import { SeriesChart } from '@/components/series-chart'
 import { VerdictBadge } from '@/components/verdict-badge'
-import { divergingFill, divergingLegend, projectionFill, projectionLegend, sequentialFill, sequentialLegend, type LegendBin } from '@/lib/ui/color-scale'
+import { changeFill, changeLegend, divergingFill, divergingLegend, projectionFill, projectionLegend, sequentialFill, sequentialLegend, type LegendBin } from '@/lib/ui/color-scale'
+import { cellProjection, changeMaxAbs, type ProjectionMode } from '@/lib/ui/projection-view'
 import { digitsForUnit, formatNumber, formatPValue, formatSigned, unitEn } from '@/lib/ui/format'
 
 export type LayerKind = 'anomaly' | 'trend' | 'mean'
@@ -40,9 +40,11 @@ const decimalsOf = (data: RegionResponse) => VARIABLES.find((variable) => variab
 export const canProject = (data?: RegionResponse) => data?.projection?.status === 'ok' && data.projection.domain !== null
 
 // Cells inside the 2D map SVG (the caller clips them to the selected boundary). Native squares, no smoothing.
-// With `projectionYear`, each cell shows its own OLS line evaluated at that year (light = lower, dark = higher).
-export function MapCells({ data, kind, project, projectionYear = null }: { data: RegionResponse; kind: LayerKind; project: (lon: number, lat: number) => [number, number]; projectionYear?: number | null }) {
-  if (projectionYear !== null && canProject(data)) return <ProjectionCells data={data} year={projectionYear} project={project} />
+// With `projectionYear`, each cell shows its own OLS line evaluated at that year (light = lower, dark = higher), or in
+// 'change' mode the line's change since the last data year (diverging, white at 0). `hatchId` is an SVG pattern drawn
+// over cells whose trend is not significant across the field.
+export function MapCells({ data, kind, project, projectionYear = null, projectionMode = 'value', hatchId }: { data: RegionResponse; kind: LayerKind; project: (lon: number, lat: number) => [number, number]; projectionYear?: number | null; projectionMode?: ProjectionMode; hatchId?: string }) {
+  if (projectionYear !== null && canProject(data)) return <ProjectionCells data={data} year={projectionYear} mode={projectionMode} project={project} hatchId={hatchId} />
   const spec = layerSpec(data, kind)
   const role = roleOf(data)
   const digits = digitsForUnit(spec.unit)
@@ -70,41 +72,48 @@ export function MapCells({ data, kind, project, projectionYear = null }: { data:
   </g>
 }
 
-function ProjectionCells({ data, year, project }: { data: RegionResponse; year: number; project: (lon: number, lat: number) => [number, number] }) {
+function ProjectionCells({ data, year, mode, project, hatchId }: { data: RegionResponse; year: number; mode: ProjectionMode; project: (lon: number, lat: number) => [number, number]; hatchId?: string }) {
   const summary = data.projection!
   const domain = summary.domain!
   const role = roleOf(data)
   const digits = decimalsOf(data)
   const unit = unitEn(data.variable.unit)
   const lastYear = summary.fitYears[1]
+  const maxAbs = changeMaxAbs(data) ?? 1
   const phase = year > lastYear ? `${year}, extrapolated ${year - lastYear} yr past the data` : `${year}, fitted line`
+  const boxes = data.cells.map((cell) => {
+    const [x0, y0] = project(cell.bounds.west, cell.bounds.north)
+    const [x1, y1] = project(cell.bounds.east, cell.bounds.south)
+    return { cell, box: { x: Math.min(x0, x1), y: Math.min(y0, y1), width: Math.abs(x1 - x0), height: Math.abs(y1 - y0) }, line: cellProjection(cell, data, year, mode) }
+  })
   return <g className="map-cells">
-    {data.cells.map((cell) => {
-      const [x0, y0] = project(cell.bounds.west, cell.bounds.north)
-      const [x1, y1] = project(cell.bounds.east, cell.bounds.south)
-      const at = cell.fit ? predict(cell.fit, year, summary.rule.floor) : null
-      const change = cell.fit && at ? at.value - predict(cell.fit, lastYear, summary.rule.floor).value : null
+    {boxes.map(({ cell, box, line }) => {
       const details = [
         `${formatNumber(cell.lat, 1)}°, ${formatNumber(cell.lon, 3)}°`,
-        at ? `${phase}: ${formatNumber(at.value, digits)} ${unit} (95% prediction interval ${formatNumber(at.low, digits)} to ${formatNumber(at.high, digits)})` : 'no line: too few complete years',
-        change !== null && year !== lastYear ? `${formatSigned(change, digits)} ${unit} vs the line in ${lastYear}` : null,
+        line ? `${phase}: ${formatNumber(line.at.value, digits)} ${unit} (95% prediction interval ${formatNumber(line.at.low, digits)} to ${formatNumber(line.at.high, digits)})` : 'no line: too few complete years',
+        line && year !== lastYear ? `${formatSigned(line.change, digits)} ${unit} vs the line in ${lastYear}` : null,
+        line ? (cell.significantField ? `trend significant across the field (q ${formatPValue(cell.qValueField)})` : `hatched: trend not significant (q ${formatPValue(cell.qValueField)})`) : null,
         `${Math.round(cell.coverage * 100)}% inside`,
       ].filter(Boolean).join(' • ')
-      return <rect key={cell.id} x={Math.min(x0, x1)} y={Math.min(y0, y1)} width={Math.abs(x1 - x0)} height={Math.abs(y1 - y0)} className={`map-cell ${at ? '' : 'is-empty'}`} style={{ fill: at ? projectionFill(at.value, domain.min, domain.max, role) : 'none' }}>
+      const fill = !line ? 'none' : mode === 'change' ? changeFill(line.change, maxAbs, role) : projectionFill(line.at.value, domain.min, domain.max, role)
+      return <rect key={cell.id} {...box} className={`map-cell ${line ? '' : 'is-empty'}`} style={{ fill }}>
         <title>{details}</title>
       </rect>
     })}
+    {hatchId && boxes.filter(({ cell, line }) => line && !cell.significantField).map(({ cell, box }) => <rect key={`hatch-${cell.id}`} {...box} className="map-hatch" fill={`url(#${hatchId})`} aria-hidden="true" />)}
   </g>
 }
 
-type LegendSpec = { title: string; bins: LegendBin[]; unit: string; digits: number; diverging: boolean; continuous: boolean; note: string }
+type LegendSpec = { title: string; bins: LegendBin[]; unit: string; digits: number; diverging: boolean; continuous: boolean; note: string; hatch?: boolean }
 
-function legendSpec(data: RegionResponse | undefined, kind: LayerKind, projectionYear: number | null): LegendSpec | null {
+function legendSpec(data: RegionResponse | undefined, kind: LayerKind, projectionYear: number | null, projectionMode: ProjectionMode): LegendSpec | null {
   if (!data) return null
   const role = roleOf(data)
   if (projectionYear !== null && canProject(data)) {
     const { domain, fitYears } = data.projection!
-    return { title: `Line value · ${projectionYear}`, bins: projectionLegend(domain!.min, domain!.max, role), unit: unitEn(data.variable.unit), digits: decimalsOf(data), diverging: false, continuous: true, note: projectionYear > fitYears[1] ? 'Extrapolated' : 'Fitted line' }
+    const phase = projectionYear > fitYears[1] ? 'Extrapolated' : 'Fitted line'
+    if (projectionMode === 'change') return { title: `Change since ${fitYears[1]} · ${projectionYear}`, bins: changeLegend(changeMaxAbs(data) ?? 1, role), unit: unitEn(data.variable.unit), digits: decimalsOf(data), diverging: true, continuous: true, note: phase, hatch: true }
+    return { title: `Line value · ${projectionYear}`, bins: projectionLegend(domain!.min, domain!.max, role), unit: unitEn(data.variable.unit), digits: decimalsOf(data), diverging: false, continuous: true, note: phase, hatch: true }
   }
   const shown = effectiveKind(kind, data.variable.trendPolicy)
   const spec = layerSpec(data, shown)
@@ -114,8 +123,8 @@ function legendSpec(data: RegionResponse | undefined, kind: LayerKind, projectio
 }
 
 // Beside the 2D map: the scale of whatever the cells show right now, highest value on top.
-export function MapLegend({ data, kind, projectionYear }: { data?: RegionResponse; kind: LayerKind; projectionYear: number | null }) {
-  const spec = legendSpec(data, kind, projectionYear)
+export function MapLegend({ data, kind, projectionYear, projectionMode = 'value' }: { data?: RegionResponse; kind: LayerKind; projectionYear: number | null; projectionMode?: ProjectionMode }) {
+  const spec = legendSpec(data, kind, projectionYear, projectionMode)
   if (!spec) return <aside className="map-legend is-empty" aria-label="Map color scale"><span className="map-legend-title">Scale</span><div className="map-legend-bar" /><span className="map-legend-note">Appears after Analyze</span></aside>
   const top = spec.bins[spec.bins.length - 1].to
   const bottom = spec.bins[0].from
@@ -124,12 +133,13 @@ export function MapLegend({ data, kind, projectionYear }: { data?: RegionRespons
     <span className="map-legend-title">{spec.title}</span>
     <div className="map-legend-scale">
       {spec.continuous
-        ? <div className="map-legend-bar" aria-hidden="true" style={{ background: `linear-gradient(to top, ${spec.bins[0].fill}, ${spec.bins[spec.bins.length - 1].fill})` }} />
+        ? <div className="map-legend-bar" aria-hidden="true" style={{ background: `linear-gradient(to top, ${spec.diverging ? `${spec.bins[0].fill}, var(--color-white), ${spec.bins[spec.bins.length - 1].fill}` : `${spec.bins[0].fill}, ${spec.bins[spec.bins.length - 1].fill}`})` }} />
         : <div className="map-legend-bar" aria-hidden="true">{[...spec.bins].reverse().map((bin, index) => <span key={index} style={{ background: bin.fill }} />)}</div>}
       <div className="map-legend-ticks" aria-hidden="true"><span>{label(top)}</span>{spec.diverging ? <span>0</span> : spec.continuous && <span>{label((top + bottom) / 2)}</span>}<span>{label(bottom)}</span></div>
     </div>
     <span className="map-legend-unit">{spec.unit}</span>
     <span className="map-legend-note">{spec.diverging ? spec.note : <>Dark = higher<br />Light = lower</>}</span>
+    {spec.hatch && <span className="map-legend-hatch"><span className="legend-swatch-hatch" aria-hidden="true" /> Trend not significant</span>}
   </aside>
 }
 

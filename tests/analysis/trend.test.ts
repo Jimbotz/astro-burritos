@@ -76,11 +76,17 @@ describe('ordinary least squares trend', () => {
     expect(trend.mannKendall?.pValue).toBeNull()
   })
 
-  it('excludes years below the 90 percent completeness threshold', () => {
-    const incomplete: AnnualObservation = { year: 2005, value: 4, unit: '°C', validObservationCount: 10, expectedObservationCount: 12, completeness: 10 / 12 }
-    const trend = calculateTrend([...Array.from({ length: 3 }, (_, index) => annualObservation(2001 + index, index)), incomplete])
+  it('excludes any year without all 12 months, including 11 of 12 (audit finding A1)', () => {
+    const elevenMonths: AnnualObservation = { year: 2005, value: 4, unit: '°C', validObservationCount: 11, expectedObservationCount: 12, completeness: 11 / 12 }
+    const trend = calculateTrend([...Array.from({ length: 3 }, (_, index) => annualObservation(2001 + index, index)), elevenMonths])
     expect(trend.nYears).toBe(3)
-    expect(trend.warnings[0]).toContain('less than 90% monthly')
+    expect(trend.warnings[0]).toContain('all 12 monthly values')
+  })
+
+  it('keeps every year that has all 12 months', () => {
+    const trend = calculateTrend(Array.from({ length: 5 }, (_, index) => annualObservation(2001 + index, index)))
+    expect(trend.nYears).toBe(5)
+    expect(trend.warnings.some((text) => text.includes('monthly values'))).toBe(false)
   })
 })
 

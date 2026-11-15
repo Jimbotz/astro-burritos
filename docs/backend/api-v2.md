@@ -1,12 +1,12 @@
 # EarthScope API v2 · guía para la interfaz
 
-Corte: 2026-11-14. Rama `Guillermo`. Esta API procesa en el servidor todas las variables seleccionadas en la auditoría v2 (`docs/backend/frontend-data-handoff.md`): la misma limpieza que hoy usan temperatura y lluvia, más reglas propias de cada variable según lo que representa (perfil de procesamiento, sección 1.1). La interfaz solo tiene que **pedir, filtrar y dibujar**. `/api/series` y `/api/climate` no cambian.
+Corte: 2026-11-14. Rama `Guillermo`. Esta API procesa en el servidor todas las variables seleccionadas en la auditoría v2 (`docs/backend/frontend-data-handoff.md`): la misma limpieza que hoy usan temperatura y lluvia, más reglas propias de cada variable según lo que representa (perfil de procesamiento, sección 1.1). La interfaz solo tiene que **pedir, filtrar y dibujar**. `/api/series` y `/api/climate` siguen funcionando para clientes externos, pero desde el 2026-11-15 están marcados como obsoletos (cabeceras `Deprecation` y `Link: </api/point>; rel="successor-version"`). Ahora exigen 12/12 meses (hallazgo A1), rechazan claves heredadas como `toString` con 400 (A5) y conservan el mensaje de rechazo de POWER (A6).
 
 | Endpoint | Para qué | Uso en la interfaz |
 |---|---|---|
 | `GET /api/variables` | Catálogo: nombres (es/en), unidades, grupo, clase, disponibilidad, reglas y textos de veredicto | Construir selectores, leyendas y filtros sin escribir nada a mano |
 | `GET /api/point` | Todas las variables de una ubicación (celda POWER): series anuales y mensuales, climatología y evaluación de tendencia | Gráficas y panel de evidencia |
-| `POST /api/region` (o `GET` con caja) | Cuadrícula de celdas de una variable recortada a un estado o país, con tendencia por celda y serie regional | Mapa y gráfica regional |
+| `GET /api/region?country=…&state=…` (o `POST` con polígono, o `GET` con caja) | Cuadrícula de celdas de una variable recortada a un estado o país, con tendencia por celda y serie regional | Mapa y gráfica regional |
 
 Tipos TypeScript listos para importar: `lib/api/v2.ts` (`PointResponse`, `RegionResponse`, `VariablesResponse`) y `lib/variables/catalog.ts` (`VariableDescriptor`, `VARIABLES`). Ejemplos reales de cada respuesta: `docs/backend/samples/`.
 
@@ -138,9 +138,18 @@ Respuesta (`PointResponse`):
 7. Ubicar los puntos por año y escalar el eje al rango de datos.
 8. Para comparar temporadas, usar `seasons[].trend.display` (por ejemplo, la mínima se calienta más en la temporada seca).
 
-## 3. `POST /api/region` (mapa)
+## 3. `/api/region` (mapa)
 
-La interfaz ya tiene la geometría del estado o país seleccionado (`lib/geo.ts` en `main`: `feature.geometry`). Se envía tal cual:
+La interfaz pide el área **por id** de Natural Earth: el código ADM0_A3 del país y, para un estado, su nombre exacto. El servidor lee el mismo contorno que dibuja el mapa (`public/geo/`, incluido en el bundle de la función con `outputFileTracingIncludes`). La URL es corta y estable, así que la CDN la guarda 24 h (`Cache-Control: public, s-maxage=86400`) y una segunda persona que pida el mismo estado no llega a la función:
+
+```http
+GET /api/region?variable=T2M&country=MEX&state=Puebla&startYear=2001&endYear=2024
+GET /api/region?variable=T2M&country=MEX                 # país completo
+```
+
+Un país o estado desconocido devuelve 404, y un código que no tiene tres letras mayúsculas devuelve 400. El código se valida antes de construir la ruta del archivo, así que no se puede inyectar una ruta. `request.selection` es `"area"` y `request.area` trae `{ country, state, name }`.
+
+Para cualquier otro polígono (clientes externos), se envía la geometría. Esta respuesta es privada y no se guarda en la CDN:
 
 ```http
 POST /api/region
@@ -149,7 +158,7 @@ Content-Type: application/json
 { "variable": "T2M", "startYear": 2001, "endYear": 2024, "geometry": { "type": "Polygon", "coordinates": [...] }, "format": "json" }
 ```
 
-Alternativa sin polígono: `GET /api/region?variable=T2M&minLat=17.75&maxLat=20.75&minLon=-99.25&maxLon=-96.75&startYear=2001&endYear=2024`.
+Por caja: `GET /api/region?variable=T2M&minLat=17.75&maxLat=20.75&minLon=-99.25&maxLon=-96.75&startYear=2001&endYear=2024`.
 
 `format: "geojson"` devuelve un `FeatureCollection` de cuadrados (una celda por feature) con todos los campos de la celda en `properties` y el resto de la respuesta en `properties` del collection: se puede dibujar directo con `d3.geoPath`.
 
@@ -183,6 +192,9 @@ Respuesta (`RegionResponse`):
 - Máximo ~2,500 celdas por región. Más grande → HTTP 413 con mensaje. La interfaz es más estricta: estima las celdas y los bloques de 5° antes de pedir (unos 2.5 s por bloque sin caché), muestra el tiempo transcurrido con un botón para cancelar y no pide áreas de más de 800 celdas (por ejemplo, México completo); en ese caso pide elegir un estado.
 - POWER se consulta en bloques alineados de 5° × 5° (1 parámetro por bloque). Medido el 2026-11-14: estado de Puebla (21 celdas, 2 bloques) 2–11 s la primera vez; México completo (665 celdas, 35 bloques, 346 KB de respuesta) 87 s la primera vez y 1.7 s después. Los bloques quedan en caché 24 h. Conviene mostrar un estado de carga y, a escala de país, empezar por la variable por defecto.
 - Regiones que cruzan el antimeridiano (por ejemplo Fiyi o Rusia completa) devuelven 422.
+- `maxDuration = 120` s en `/api/region` y `/api/point` (configuración del segmento de ruta). La región más grande que acepta la API tardó 87 s sin caché.
+- **Cancelación.** El servidor pasa `request.signal` al cliente de POWER. Si el navegador cancela (botón Cancel, nueva consulta o pestaña cerrada), no se piden más bloques y se cancelan los que estaban en vuelo, sin reintento. Los bloques ya descargados quedan en la caché de datos.
+- **Límite por cliente** (`lib/api/rate-limit.ts`): 12 análisis de región y 30 de punto por minuto y por IP (`x-forwarded-for`). Al pasarlo, la respuesta es 429 con `Retry-After`. El conteo vive en la memoria de cada instancia, así que en serverless es un freno por instancia y no una defensa distribuida (esa le toca al firewall de la plataforma). Las respuestas servidas desde la CDN no cuentan.
 
 ### 3.3 Proyección exploratoria (`projection`, `cells[].fit`)
 
@@ -191,11 +203,17 @@ Solo para las variables con `profile.projection` (T2M, TXx, TNn y PRECTOTCORR); 
 - Cada celda trae `fit: { intercept, slopePerYear, xMean, sxx, residualSd, n, tCrit, ar1 }`: la recta OLS de sus años completos en la ventana. `predict(fit, año, rule.floor)` de `lib/analysis/projection.ts` devuelve el valor y el intervalo de predicción de 95 % para un año nuevo, ensanchado por √((1 + r1)/(1 − r1)) cuando los residuos están autocorrelacionados.
 - Validación sobre la **serie regional ponderada** (`holdout.scope: "regional-series"`), no sobre celda-años: las celdas vecinas comparten el tiempo meteorológico, así que 21 celdas × 5 años no son 105 pruebas independientes. Usa orígenes móviles: cada una de las últimas `rule.holdoutWindows` (2) ventanas de `rule.holdoutYears` (5) años (2015–2019 y 2020–2024) se predice con una recta ajustada a los años anteriores a ella, y los errores se combinan. `holdout.windows` trae la mejora de cada ventana. `holdout` compara la recta con el promedio del entrenamiento: `rmseModel`, `rmseBaseline`, `maeModel`, `maeBaseline`, `skill` = 1 − RMSE(recta)/RMSE(promedio), `bias` (observado − predicho; > 0 = los años recientes quedaron arriba de la recta) y `coverage95`.
 - `status`: `ok` · `blocked-by-quality` (la recta predice peor que el promedio en la ventana más reciente, desde la que se extiende, o la mejora combinada es menor que `rule.minSkill`, 10 %: no se dibuja nada) · `insufficient-data` (menos de `minFitYears + holdoutYears` años completos).
-- `warnings` (con `status: "ok"`): `interval-undercoverage` si menos de `rule.minCoverage` (80 %) de los años reservados cae en el intervalo, y `unstable-skill` si en una ventana anterior la recta predijo peor que el promedio.
+- `warnings` (con `status: "ok"`):
+  - `interval-undercoverage`: menos de `rule.minCoverage` (80 %) de los años reservados cae en el intervalo.
+  - `unstable-skill`: en una ventana anterior la recta predijo peor que el promedio.
+  - `curvature`: el término cuadrático de la serie regional tiene p < `rule.diagnosticAlpha` (0.05). Su error estándar se ensancha por AR(1). Si la serie se curva hacia arriba, la recta extendida queda por debajo de los valores reales.
+  - `growing-variance`: Breusch–Pagan de Koenker con p < 0.05 y una dispersión que crece con el tiempo, así que el intervalo de ancho constante queda angosto en los años proyectados.
+- `diagnostics: { years, curvature: { coefficient, tStatistic, pValue, ar1 }, variance: { lm, pValue, trend } }`. Viene siempre, también cuando la proyección está bloqueada (`lib/analysis/diagnostics.ts`).
 - `horizon` es el rango del deslizador: del inicio de la ventana a `fin + rule.horizonYears` (10). Dentro de `fitYears` se muestra la recta ajustada; después, la extrapolación.
 - `domain` es fijo para todo el rango del deslizador (mínimo y máximo de las rectas en los extremos), así que un cambio de color siempre es un cambio de valor. Escala secuencial: claro = valor bajo, oscuro = alto.
+- La interfaz tiene dos modos (`lib/ui/projection-view.ts`). **Value** es el valor de la recta en el año elegido. **Change since {último año}** es la recta en ese año menos la recta en el último año con datos: divergente, blanco en 0 y con escala fija para todo el deslizador. Se compara contra la recta y no contra el valor observado, para mostrar la tendencia y no el tiempo de un solo año. Las celdas con `significantField === false` llevan un rayado: su dirección no se distingue del ruido entre años. El panel separa cuántas rectas suben y bajan, cuántas de ellas son significativas, la mejora de cada ventana y los p de forma.
 
-Medido el 2026-11-15 (2001–2024, ventanas 2015–2019 y 2020–2024, serie regional): solo T2M pasa, en Puebla (20 % combinado; −4 % en 2015–2019, por eso lleva `unstable-skill`) y en Oaxaca (27 %), ambos con `interval-undercoverage` porque los años recientes quedaron arriba de la recta. En la ventana 2015–2019 ninguna variable mejora al promedio en 10 %: exigir ambas ventanas por separado bloquearía todo. TXx, TNn y PRECTOTCORR quedan bloqueadas en Puebla, Tlaxcala y Oaxaca (la lluvia de Tlaxcala gana en 2015–2019 pero pierde en 2020–2024).
+Medido el 2026-11-15 (2001–2024, ventanas 2015–2019 y 2020–2024, serie regional): solo T2M pasa. En Puebla mejora 20 % combinado y −4 % en 2015–2019, por eso lleva `unstable-skill`; en Oaxaca mejora 27 %. Los dos llevan `interval-undercoverage`, porque los años recientes quedaron arriba de la recta, y `curvature` (p = 0.0007 y 0.0016), porque la serie se acelera. Oaxaca lleva además `growing-variance` (p = 0.034). La sensibilidad a cada umbral está en `docs/science/threshold-sensitivity.md`. En la ventana 2015–2019 ninguna variable mejora al promedio en 10 %: exigir ambas ventanas por separado bloquearía todo. TXx, TNn y PRECTOTCORR quedan bloqueadas en Puebla, Tlaxcala y Oaxaca (la lluvia de Tlaxcala gana en 2015–2019 pero pierde en 2020–2024).
 
 ## 4. Errores
 
@@ -203,7 +221,10 @@ Medido el 2026-11-15 (2001–2024, ventanas 2015–2019 y 2020–2024, serie reg
 |---|---|---|
 | 400 | Parámetros inválidos (año, coordenadas, variable, geometría) | `error` tal cual |
 | 413 | Región demasiado grande o geometría > 5 MB | Sugerir un estado o simplificar el polígono |
+| 404 | País o estado desconocido en `GET /api/region?country=…&state=…` | `error` tal cual |
 | 422 | Región sin celdas o que cruza el antimeridiano | `error` tal cual |
+| 429 | Demasiados análisis sin caché desde la misma IP | `error` tal cual; esperar `Retry-After` segundos |
+| 499 | El cliente canceló la petición (nadie lee esta respuesta) | — |
 | 502 | POWER rechazó o no respondió | “NASA POWER no está disponible”, con reintento |
 | 504 | POWER tardó demasiado | Reintento o región menor |
 

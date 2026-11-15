@@ -12,6 +12,10 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // GET /api/region?country=…&state=… reads the Natural Earth outlines from public/geo on the server.
+  outputFileTracingIncludes: {
+    '/api/region': ['./public/geo/**/*'],
+  },
 }
 
 export default nextConfig

@@ -69,6 +69,19 @@ describe('GET /api/impact?lens=heat', () => {
     expect(nights.trend).toMatchObject({ direction: 'increasing', status: 'robust', mannKendallSignificant: true })
     expect(nights.interpretation.en).toMatch(/^The share of nights above the historical heat threshold is increasing/)
   })
+
+  it('gives every component a short phrase and every map layer a unit and a reading of the map', async () => {
+    const body = await (await impactGet(request(`/api/impact?lens=heat&${PUEBLA}`))).json() as HeatImpactResponse
+    expect(body.decisionSupport.componentDetails.map((item) => item.short.en)).toEqual(['Rising (robust)', 'No clear trend', 'Not confirmed', 'Confirms the signal', expect.stringMatching(/^93% urban · 3\.3 million people$/)])
+    for (const layer of body.map.layers) {
+      expect(layer.unit, layer.id).toHaveProperty('en')
+      expect(layer.reading?.headline.en, layer.id).toMatch(/cells/)
+    }
+    const priority = body.map.layers.find((item) => item.id === 'priority-zones')!
+    expect(priority.reading!.headline.en).toMatch(/^\d+ of 21 cells: High-exposure signal\.$/)
+    expect(priority.reading!.point!.en).toBe('Analysis point: High-exposure signal.')
+    expect(priority.reading!.affects!.en).toMatch(/million people live there \(\d+% of the people on the map\)\.$/)
+  })
 })
 
 describe('language and validation', () => {

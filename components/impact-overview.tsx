@@ -19,6 +19,9 @@ import { LENS_NAME, periodText, sourceLine } from '@/lib/ui/impact-presentation'
 import { severityClass } from '@/lib/ui/impact-status'
 import { formatNumber } from '@/lib/ui/format'
 
+/** Hazard status in two or three words for the exposure blocks. */
+const STATUS_SHORT = { 'insufficient-data': 'Insufficient data', 'no-detectable': 'No signal', watch: 'Watch', 'planning-signal': 'Planning signal', corroborated: 'Corroborated' } as const
+
 const MODE_LABEL = { 'source-native': 'each source’s own years', 'common-complete-window': 'common complete window', 'fixed-window': 'fixed window' } as const
 
 // Impact lenses section (IMPLEMENTACION_LENTES_IMPACTO §10.1): after Analyze, two selectable lenses; choosing one
@@ -38,13 +41,13 @@ export function ImpactLenses({ region, startYear, endYear, analysisRequested }: 
   </section>
 }
 
-function ComponentRow({ active, label, detail, id }: { id: string; active: boolean | null; label: string; detail: string }) {
+// One decision component as a chip: icon, name, yes/no and a few plain words from the backend (`short`).
+function ComponentChip({ active, label, short, id }: { id: string; active: boolean | null; label: string; short: string }) {
   const Icon = COMPONENT_ICONS[id]
   const State = active === null ? CircleMinus : active ? CircleCheck : CircleX
-  return <li className={`impact-component ${active === null ? 'is-na' : active ? 'is-on' : 'is-off'}`}>
-    <State size={18} aria-hidden="true" />
-    {Icon && <Icon size={16} aria-hidden="true" className="impact-component-icon" />}
-    <div><strong>{label}</strong> <span className="impact-component-state">{active === null ? 'not conclusive' : active ? 'yes' : 'no'}</span><p>{detail}</p></div>
+  return <li className={`impact-chip ${active === null ? 'is-na' : active ? 'is-on' : 'is-off'}`}>
+    <span className="impact-chip-head">{Icon && <Icon size={18} aria-hidden="true" />}<strong>{label}</strong><span className="impact-chip-state"><State size={16} aria-hidden="true" /> {active === null ? 'Not conclusive' : active ? 'Yes' : 'No'}</span></span>
+    <span className="impact-chip-short">{short}</span>
   </li>
 }
 
@@ -56,19 +59,22 @@ export function ImpactOverview({ data }: { data: ImpactResponse }) {
       <div className="impact-summary-head">
         <ImpactLogo lens={data.lens} severity={decision.severity} size={56} />
         <div>
-          <p className="impact-eyebrow">{name.title.toUpperCase()}</p>
           <ImpactStatusBadge status={decision.status} severity={decision.severity} label={decision.label} size="lg" />
           <p className="impact-summary-text">{decision.summary.en}</p>
         </div>
       </div>
-      <h4 className="impact-subtitle">Components</h4>
-      <ul className="impact-components">{decision.componentDetails.map((item) => <ComponentRow key={item.id} id={item.id} active={item.active} label={item.label.en} detail={item.detail.en} />)}</ul>
+      <ul className="impact-chips" aria-label="Components">{decision.componentDetails.map((item) => <ComponentChip key={item.id} id={item.id} active={item.active} label={item.label.en} short={item.short?.en ?? ''} />)}</ul>
+      {/* The technical reason of each component (criteria, p-values), folded so the summary stays short. */}
+      <details className="info-details impact-why">
+        <summary><Info size={16} /> Why this status?</summary>
+        <ul>{decision.componentDetails.map((item) => <li key={item.id}>{item.detail.en}</li>)}</ul>
+        {decision.sensitivity === 'high' && <p>The status changes with the percentile thresholds (0.10 / 0.20 / 0.30): high sensitivity.</p>}
+      </details>
       <div className="impact-action">
-        <strong>Suggested action</strong>
+        <strong>Suggested action <span>· a planning signal, not a command{decision.notMedicalAdvice ? ' or medical advice' : ''}</span></strong>
         <p>{decision.recommendedAction.en}</p>
-        <span className="impact-action-note">{decision.notMedicalAdvice ? 'A planning signal, not a command or medical advice.' : 'A planning signal, not a command.'}{decision.sensitivity === 'high' ? ' Sensitivity to thresholds: high.' : ''}</span>
       </div>
-      <p className="impact-summary-meta"><strong>Source:</strong> {sourceLine(data)} · <strong>Limitation:</strong> {data.limitations[0]?.en}</p>
+      <p className="impact-summary-meta"><strong>Source:</strong> {sourceLine(data)}</p>
     </article>
 
     <p className="impact-scope"><Info size={16} aria-hidden="true" /> {data.scope.reference.label.en}: cell {data.scope.reference.cellId.replace('_', '°, ')}° · {data.period.effective ? `period ${periodText(data.period.effective)} (${MODE_LABEL[data.period.mode]})` : `no usable period in ${periodText(data.period.requested)}${data.period.blocked ? ' (blocked by data quality)' : ''}`} · requested {periodText(data.period.requested)}</p>
@@ -98,9 +104,9 @@ export function ImpactOverview({ data }: { data: ImpactResponse }) {
 
 function HeatBlocks({ data }: { data: HeatImpactResponse }) {
   return <div className="impact-triple" aria-label="Hazard, exposure and priority">
-    <div className="impact-box is-hazard"><h4>Climate hazard</h4><p className="impact-box-value">{data.decisionSupport.label.en}</p><p>{data.hazard.variables.join(', ')} · NASA POWER / MERRA-2</p></div>
-    <div className="impact-box is-exposure"><h4>Exposure</h4><p className="impact-box-value">{data.exposure.population !== null ? `${data.exposure.population.toLocaleString('en-US')} people` : 'Not evaluated'}</p><p>{data.exposure.urbanFraction !== null ? `${Math.round(data.exposure.urbanFraction * 100)}% urban · ` : ''}{data.exposure.note.en}</p></div>
-    <div className="impact-box is-priority"><h4>Combined priority</h4><p className="impact-box-value">{data.priority.label.en}</p><p>{data.priority.reason.en}</p></div>
+    <div className="impact-box is-hazard"><h4>Climate hazard</h4><p className="impact-box-value">{STATUS_SHORT[data.hazard.status]}</p><p>NASA POWER / MERRA-2</p></div>
+    <div className="impact-box is-exposure"><h4>Exposure</h4><p className="impact-box-value">{data.exposure.population !== null ? `${data.exposure.population.toLocaleString('en-US')} people` : 'Not evaluated'}</p><p>{data.exposure.urbanFraction !== null ? `${Math.round(data.exposure.urbanFraction * 100)}% urban · ` : ''}INEGI 2020</p></div>
+    <div className="impact-box is-priority"><h4>Combined priority</h4><p className="impact-box-value">{data.priority.label.en}</p></div>
   </div>
 }
 
@@ -108,7 +114,7 @@ function WaterBlocks({ data }: { data: WaterImpactResponse }) {
   const station = data.validation.station
   return <div className="impact-station">
     <h4>Validation with CONAGUA/SMN</h4>
-    {station ? <p>Station <strong>{station.name}</strong> ({station.municipality}, {station.distanceKm} km{station.sameCell ? ', same cell' : ''}): {station.note.en}{station.meanDifferencePercent !== null ? ` POWER’s mean is ${formatNumber(Math.abs(station.meanDifferencePercent), 0)}% ${station.meanDifferencePercent >= 0 ? 'above' : 'below'} the station’s.` : ''}{station.evidence === null ? ' The station has too few base years to judge recent dryness.' : station.evidence ? ` ${station.recentYearsBelowP20} of its last 5 years were below its own 20th percentile (observed evidence).` : ' Its last 5 years show no repeated dry years.'}</p>
-      : <p>No bundled SMN station within 30 km of the reference point: rain is not validated here.</p>}
+    {station ? <p>Station <strong>{station.name}</strong> ({station.distanceKm} km){station.correlation !== null ? `: agreement with POWER r = ${formatNumber(station.correlation, 2)}` : ''}{station.meanDifferencePercent !== null ? ` · POWER ${formatNumber(Math.abs(station.meanDifferencePercent), 0)}% ${station.meanDifferencePercent >= 0 ? 'wetter' : 'drier'}` : ''}{station.evidence ? ' · observed dry years' : ''}.</p>
+      : <p>No SMN station within 30 km: rain is not validated here.</p>}
   </div>
 }

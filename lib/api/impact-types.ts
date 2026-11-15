@@ -58,7 +58,8 @@ export type ImpactIndicator = {
   limitations: { es: string[]; en: string[] }
 }
 
-export type ImpactComponent = { id: string; label: Bilingual; active: boolean | null; detail: Bilingual }
+/** `short`: a few plain words for the summary chips; `detail`: the technical reason (criteria, p-values) for “Why this status?”. */
+export type ImpactComponent = { id: string; label: Bilingual; active: boolean | null; short: Bilingual; detail: Bilingual }
 
 export type DecisionSupport = {
   status: ImpactStatus
@@ -113,9 +114,16 @@ export type ImpactLegend = {
   target: 'cells' | 'municipalities'
   classes: Array<{ id: string; label: Bilingual; color: string }>
   note: Bilingual
-  /** Plain-language explanation of the layer: what each colour shows and what the layer is for. */
+  /** Plain-language explanation of the layer: what it shows (one short line) and what it is for. */
   about: { shows: Bilingual; useFor: Bilingual }
+  /** Unit of the cells' or municipalities' `value` in this layer (e.g. "pp/decade", "people", "% urban"). */
+  unit: Bilingual
+  /** What the map shows right now and whom it affects, computed on the server for this layer. */
+  reading: LayerReading | null
 }
+
+/** “Reading the map”: the main class on the map, the 2020 population in it, and the class of the analysis point. */
+export type LayerReading = { headline: Bilingual; affects: Bilingual | null; point: Bilingual | null }
 
 export type ImpactCell = {
   cellId: string

@@ -57,7 +57,7 @@ Comunes a los dos lentes:
 `decisionSupport` contiene:
 - `status`, `label`, `severity`, `summary` y `recommendedAction`.
 - `notACommand: true`; en el lente de calor, además `notMedicalAdvice: true`.
-- `components` (booleanos o `null`) y `componentDetails[]`, con el detalle de cada componente.
+- `components` (booleanos o `null`) y `componentDetails[]`: cada componente trae `short` (pocas palabras para los recuadros del resumen, por ejemplo "Rising (robust)" o "Drought in 4 of 5 years") y `detail` (el motivo técnico, con criterios y p-values, que la interfaz pliega en "Why this status?").
 - `sensitivity` (solo agua) y `cannotConclude[]`, lo que el sistema no puede concluir.
 
 **Solo agua:**
@@ -97,7 +97,10 @@ La interfaz nunca deduce el color: lo toma de `severity`. Junto al color siempre
 - Exposición: `population-exposure`, `urban-exposure`.
 - Prioridad combinada: `priority-zones`.
 
-Cada celda y cada municipio trae `class`; el color sale solo de `layers[].classes`. Cada capa trae además `about.shows` (qué representa) y `about.useFor` (para qué sirve), en español e inglés; la interfaz muestra los de la capa elegida bajo los botones. Para un estado sin snapshot, `map.available` es `false` y `reason` lo explica.
+Cada celda y cada municipio trae `class`; el color sale solo de `layers[].classes`. Cada capa trae además, en español e inglés:
+- `about.shows`: una línea con lo que representa (se muestra bajo los botones) y `about.useFor`: para qué sirve (texto emergente del botón);
+- `unit`: la unidad de `value` en esa capa (`pp/decade`, `°C/decade`, `mm/decade`, `people`, `% urban`, `years of the last 5`);
+- `reading`, calculado en el servidor para la respuesta: `headline` (la clase más relevante presente y en cuántas celdas o municipios), `affects` (la población 2020 que vive en las unidades con señal y su porcentaje sobre la población del mapa) y `point` (la clase de la celda o municipio del punto de análisis). Ejemplo, Puebla, calor, capa de prioridad: "19 of 21 cells: High-exposure signal." y "Analysis point: High-exposure signal." Para un estado sin snapshot, `map.available` es `false` y `reason` lo explica.
 
 ## 3. Ventanas (§6)
 
@@ -141,11 +144,11 @@ Después de *Analyze region*, la sección **Impact lenses** muestra dos tarjetas
 1. Se pide `/api/impact` con el punto, el país, el estado y el periodo del paso 1.
 2. Se muestran:
    - el estado (texto, ícono, color y descripción);
-   - el resumen, los componentes y la acción sugerida ("A planning signal, not a command");
-   - la fuente y la limitación;
+   - la frase de resumen; los componentes como recuadros con Sí/No y una frase corta (`short`), con el detalle técnico plegado en "Why this status?";
+   - la acción sugerida ("a planning signal, not a command") y la fuente;
    - en calor, peligro, exposición y prioridad separados; en agua, la validación con la estación;
    - las tarjetas de indicadores: valor principal, qué significa y un botón *Why?* con la definición, el método y la serie anual. Cada familia tiene su color: cálidos para días y noches cálidos (azul si bajan), rojo para el día más cálido, azul para la noche más fría y la mínima media, verde para la población expuesta;
-   - el mapa temático, con un solo renglón de capas, la explicación de la capa elegida (qué muestra y para qué sirve) y una leyenda que solo lista las clases presentes en el mapa y el punto de análisis;
+   - el mapa temático: un renglón de capas, una línea con lo que muestra la capa elegida, el recuadro "Reading the map" (qué se ve, a cuánta gente alcanza y dónde cae el punto de análisis), la leyenda con solo las clases presentes y un panel con todos los valores de la celda (o municipio) que se elija con clic o teclado; sin selección, el panel describe la celda del punto de análisis;
    - los avisos, la calidad de datos, *Sources & methods* y *What this lens cannot conclude*.
 
 La tabla de municipios sigue en la respuesta de la API (`municipalities[]`), pero la interfaz no la muestra.

@@ -24,14 +24,14 @@ beforeAll(async () => {
 describe('lens cards render only what the backend returned', () => {
   it('water: status, summary, components, suggested action, source and the climate-balance limitation', () => {
     const html = renderToStaticMarkup(<ImpactOverview data={water} />)
-    for (const text of ['WATER SIGNAL', 'Watch', water.decisionSupport.summary.en, 'Precipitation stress', 'Observed drought (CONAGUA)', 'Suggested action', 'A planning signal, not a command.', 'NASA POWER + CONAGUA/SMN', 'Estimated climate balance. It does not represent water physically available in dams or aquifers.', 'Validation with CONAGUA/SMN', 'Sources &amp; methods', 'What this lens cannot conclude']) expect(html, text).toContain(text)
+    for (const text of ['Watch', water.decisionSupport.summary.en, 'Precipitation stress', 'Observed drought (CONAGUA)', 'Drought in 4 of 5 years', 'Why this status?', 'Suggested action', 'a planning signal, not a command', 'NASA POWER + CONAGUA/SMN', 'Estimated climate balance. It does not represent water physically available in dams or aquifers.', 'Validation with CONAGUA/SMN', 'Sources &amp; methods', 'What this lens cannot conclude']) expect(html, text).toContain(text)
     expect(html).toContain('class="impact-map-svg"')
     expect(html).not.toMatch(/NaN|undefined/)
   })
 
   it('heat: hazard, exposure and priority as separate blocks, never medical advice', () => {
     const html = renderToStaticMarkup(<ImpactOverview data={heat} />)
-    for (const text of ['HEAT SIGNAL', 'Corroborated heat-exposure signal', 'Climate hazard', 'Exposure', 'Combined priority', 'High-exposure signal', 'A planning signal, not a command or medical advice.', 'NASA POWER + INEGI', 'It is not a medical diagnosis, and the climate cell does not represent a specific neighbourhood.']) expect(html, text).toContain(text)
+    for (const text of ['Corroborated heat-exposure signal', 'Climate hazard', 'Exposure', 'Combined priority', 'High-exposure signal', 'a planning signal, not a command or medical advice', 'Rising (robust)', 'Confirms the signal', 'NASA POWER + INEGI', 'It is not a medical diagnosis, and the climate cell does not represent a specific neighbourhood.']) expect(html, text).toContain(text)
     expect(html).toContain('impact-summary is-alert')
     expect(html).not.toMatch(/NaN|undefined/)
   })
@@ -69,15 +69,33 @@ describe('lens cards render only what the backend returned', () => {
     expect(legend).toContain('is-point')
   })
 
-  it('explains what the selected map filter shows and what it is for, and every filter carries its explanation', () => {
+  it('summarizes each component as a chip with a few words, and folds the technical reason under “Why this status?”', () => {
+    const html = renderToStaticMarkup(<ImpactOverview data={heat} />)
+    expect(html.match(/class="impact-chip /g)).toHaveLength(heat.decisionSupport.componentDetails.length)
+    const why = html.slice(html.indexOf('Why this status?'))
+    expect(why).toContain('Mann–Kendall (Hamed–Rao) p &lt; 0.05')
+    // The long criteria line is not in the chips any more, and the repeated eyebrow and notes are gone.
+    expect(html.slice(0, html.indexOf('Why this status?'))).not.toContain('Mann–Kendall')
+    expect(html).not.toContain('impact-eyebrow')
+    expect(html).not.toContain('Limitation:</strong>')
+  })
+
+  it('reads the map for the selected layer: what you see, how many people it reaches, the analysis point and its cell', () => {
     const html = renderToStaticMarkup(<ImpactOverview data={heat} />)
     const priority = heat.map.layers.find((item) => item.id === heat.map.defaultLayer)!
-    expect(html).toContain('What it shows:')
+    expect(html).toContain('Reading the map')
+    expect(html).toContain(priority.reading!.headline.en)
+    expect(html).toContain(priority.reading!.affects!.en)
+    expect(html).toContain(priority.reading!.point!.en)
     expect(html).toContain(priority.about.shows.en)
-    expect(html).toContain(priority.about.useFor.en)
+    // The cell panel describes the analysis point cell across every layer, with the backend units.
+    const panel = html.slice(html.indexOf('impact-cell-panel'))
+    expect(panel).toContain('Analysis point cell')
+    expect(panel).toContain('pp/decade')
+    expect(panel).toMatch(/3,\d{3},\d{3} people/)
     for (const layer of [...heat.map.layers, ...water.map.layers]) {
-      expect(layer.about.shows.en.length, layer.id).toBeGreaterThan(30)
-      expect(layer.about.useFor.es.length, layer.id).toBeGreaterThan(20)
+      expect(layer.about.shows.en.length, layer.id).toBeGreaterThan(10)
+      expect(layer.about.useFor.es.length, layer.id).toBeGreaterThan(10)
     }
     // Each heat filter button also carries its explanation as a tooltip.
     expect(html.match(/<button type="button" aria-pressed="(true|false)" title="/g)).toHaveLength(heat.map.layers.length)

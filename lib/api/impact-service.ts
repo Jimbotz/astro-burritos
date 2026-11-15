@@ -23,7 +23,7 @@ import { municipalDrought, nearestStation, validateStation, droughtMonitor, drou
 import { cellPopulation, findMunicipality, municipalitiesOfState, type InegiMunicipality } from '../data/inegi'
 import { MEXICO_STATE_CODES, municipalityAt, STUDY_STATES } from '../data/impact-geometry'
 import { impactSources } from '../data/impact-manifest'
-import { buildImpactMap } from './impact-map'
+import { buildImpactMap, peopleText } from './impact-map'
 import { BALANCE_PROFILE, ET0_PROFILE } from './impact-profiles'
 import { ACTIONS, CANNOT_CONCLUDE, FINAL_STATEMENT, LENS_STATUS_LABEL, LIMITATIONS, PRIORITY_LABEL, QUESTIONS, severityFor, STATUS_LABEL } from './impact-text'
 import { IMPACT_SCHEMA_VERSION, type Bilingual, type DecisionSupport, type HeatImpactResponse, type ImpactIndicator, type ImpactLens, type ImpactMunicipality, type ImpactPeriod, type ImpactScope, type ImpactSourceRef, type ImpactStatus, type WaterImpactResponse, type WindowMode } from './impact-types'
@@ -275,7 +275,7 @@ export async function analyzeWaterImpact(request: ImpactRequest, signal?: AbortS
   const decisionSupport: DecisionSupport = {
     status, label: LENS_STATUS_LABEL.water[status] ?? STATUS_LABEL[status], severity: severityFor('water', status), summary, recommendedAction: ACTIONS.water[status], notACommand: true,
     components: components ? { supplyStress: components.supplyStress.active, demandStress: components.demandStress.active, storageStress: components.storageStress.active, observedDrought: components.observedDrought.active } : { supplyStress: null, demandStress: null, storageStress: null, observedDrought: null },
-    componentDetails: components ? (Object.keys(COMPONENT_LABEL) as Array<keyof typeof components>).map((id) => ({ id, label: COMPONENT_LABEL[id], active: components[id].active, detail: componentDetail(components[id], COMPONENT_LABEL[id]) })) : [],
+    componentDetails: components ? (Object.keys(COMPONENT_LABEL) as Array<keyof typeof components>).map((id) => ({ id, label: COMPONENT_LABEL[id], active: components[id].active, short: waterShort(id, components[id]), detail: componentDetail(components[id], COMPONENT_LABEL[id]) })) : [],
     sensitivity: sensitivity?.sensitivity ?? null,
     cannotConclude: CANNOT_CONCLUDE.water,
   }
@@ -307,7 +307,7 @@ export async function analyzeWaterImpact(request: ImpactRequest, signal?: AbortS
     })
   }
 
-  const map = await buildImpactMap('water', resolved.stateCode, eff?.startYear ?? request.startYear, endYear, root)
+  const map = await buildImpactMap('water', resolved.stateCode, eff?.startYear ?? request.startYear, endYear, root, { cellId: scope.reference.cellId, municipalityCode: resolved.referenceMunicipality?.code ?? null })
   const municipalLayers = new Map(map.municipalities.map((item) => [item.code, item.layers]))
   const municipalities = await municipalRows(scope.kind === 'state' ? resolved.stateCode : null, scope.kind === 'state' ? null : municipalityCode ? [municipalityCode] : null, endYear, municipalLayers, root)
   const warnings: Bilingual[] = []
@@ -402,11 +402,11 @@ export async function analyzeHeatImpact(request: ImpactRequest, signal?: AbortSi
     status, label: LENS_STATUS_LABEL.heat[status] ?? STATUS_LABEL[status], severity: severityFor('heat', status, priorityStatus), summary, recommendedAction: ACTIONS.heat[status], notACommand: true, notMedicalAdvice: true,
     components: comps,
     componentDetails: [
-      { id: 'warmNights', label: COMPONENT_LABEL.warmNights, active: comps.warmNights, detail: criteriaText('warmNights') },
-      { id: 'warmDays', label: COMPONENT_LABEL.warmDays, active: comps.warmDays, detail: criteriaText('warmDays') },
-      { id: 'hotExtreme', label: COMPONENT_LABEL.hotExtreme, active: comps.hotExtreme, detail: extremeText('TXx', trends.TXx, comps.hotExtreme) },
-      { id: 'coldExtreme', label: COMPONENT_LABEL.coldExtreme, active: comps.coldExtreme, detail: extremeText('TNn', trends.TNn, comps.coldExtreme) },
-      { id: 'urbanExposure', label: { es: 'Exposición urbana', en: 'Urban exposure' }, active: exposure.urbanFraction === null ? null : exposure.urbanFraction >= HEAT_THRESHOLDS.highUrbanFraction, detail: exposure.note },
+      { id: 'warmNights', label: COMPONENT_LABEL.warmNights, active: comps.warmNights, short: trendShort(comps.warmNights), detail: criteriaText('warmNights') },
+      { id: 'warmDays', label: COMPONENT_LABEL.warmDays, active: comps.warmDays, short: trendShort(comps.warmDays), detail: criteriaText('warmDays') },
+      { id: 'hotExtreme', label: COMPONENT_LABEL.hotExtreme, active: comps.hotExtreme, short: confirmShort(comps.hotExtreme), detail: extremeText('TXx', trends.TXx, comps.hotExtreme) },
+      { id: 'coldExtreme', label: COMPONENT_LABEL.coldExtreme, active: comps.coldExtreme, short: confirmShort(comps.coldExtreme), detail: extremeText('TNn', trends.TNn, comps.coldExtreme) },
+      { id: 'urbanExposure', label: { es: 'Exposición urbana', en: 'Urban exposure' }, active: exposure.urbanFraction === null ? null : exposure.urbanFraction >= HEAT_THRESHOLDS.highUrbanFraction, short: exposureShort(exposure.population, exposure.urbanFraction), detail: exposure.note },
     ],
     sensitivity: null,
     cannotConclude: CANNOT_CONCLUDE.heat,
@@ -440,7 +440,7 @@ export async function analyzeHeatImpact(request: ImpactRequest, signal?: AbortSi
     limitations: lim([LIMITATIONS.heat[1]]),
   })
 
-  const map = await buildImpactMap('heat', resolved.stateCode, eff?.startYear ?? request.startYear, endYear, root)
+  const map = await buildImpactMap('heat', resolved.stateCode, eff?.startYear ?? request.startYear, endYear, root, { cellId: scope.reference.cellId, municipalityCode: resolved.referenceMunicipality?.code ?? null })
   const municipalities = await municipalRows(scope.kind === 'state' ? resolved.stateCode : null, scope.kind === 'municipality' && municipality ? [municipality.code] : null, endYear, new Map(), root)
   const warnings: Bilingual[] = []
   if (!heat.thresholdsAvailable) warnings.push({ es: 'La base diaria 1991–2020 está incompleta: TX90p/TN90p no se pueden calcular.', en: 'The 1991–2020 daily base is incomplete: TX90p/TN90p cannot be computed.' })
@@ -459,6 +459,27 @@ export async function analyzeHeatImpact(request: ImpactRequest, signal?: AbortSi
     warnings, limitations: LIMITATIONS.heat,
     finalStatement: FINAL_STATEMENT.heat(status === 'planning-signal' || status === 'corroborated'),
   }
+}
+
+const NOT_EVALUABLE: Bilingual = { es: 'No evaluable', en: 'Not evaluable' }
+
+/** A few plain words per water component for the summary chips (the counts behind its status). */
+function waterShort(id: string, result: ComponentResult): Bilingual {
+  if (result.active === null) return NOT_EVALUABLE
+  const n = result.hits.length
+  const of = result.evaluated.length
+  if (id === 'demandStress' && result.reason === 'robust-upward-trend') return { es: 'Tendencia robusta al alza', en: 'Robust upward trend' }
+  if (id === 'storageStress' && result.reason === 'persistent-negative-anomaly') return { es: 'Bajo lo normal los 5 años', en: 'Below normal all 5 years' }
+  const words: Record<string, Bilingual> = { supplyStress: { es: 'Lluvia baja', en: 'Low rain' }, demandStress: { es: 'Demanda alta', en: 'High demand' }, storageStress: { es: 'Suelo seco', en: 'Dry soil' }, observedDrought: { es: 'Sequía', en: 'Drought' } }
+  return { es: `${words[id].es} en ${n} de ${of} años`, en: `${words[id].en} in ${n} of ${of} years` }
+}
+
+const trendShort = (meets: boolean | null): Bilingual => (meets === null ? NOT_EVALUABLE : meets ? { es: 'Aumenta (robusta)', en: 'Rising (robust)' } : { es: 'Sin tendencia clara', en: 'No clear trend' })
+const confirmShort = (confirms: boolean | null): Bilingual => (confirms === null ? NOT_EVALUABLE : confirms ? { es: 'Confirma la señal', en: 'Confirms the signal' } : { es: 'No la confirma', en: 'Not confirmed' })
+function exposureShort(population: number | null, urban: number | null): Bilingual {
+  if (population === null) return NOT_EVALUABLE
+  const people = peopleText(population)
+  return urban === null ? people : { es: `${Math.round(urban * 100)}% urbano · ${people.es}`, en: `${Math.round(urban * 100)}% urban · ${people.en}` }
 }
 
 function extremeText(id: 'TXx' | 'TNn', t: RobustTrend | null, active: boolean | null): Bilingual {

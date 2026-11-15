@@ -164,7 +164,6 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .query-variables .variable-options { gap: 6px; }
 .query-variables .variable-option { min-height: 48px; padding: 5px 12px; }
 .setup-meta { margin-top: 12px; }
-.setup-meta .setup-note { margin: 0 0 8px; }
 .setup-meta .panel-footnote { padding-top: 8px; }
 /* H1 per brand guide: Fira Sans Black, all caps, 5% letter-spacing (never Neon Yellow) */
 .filters-panel h1 { margin: 0; font: 900 18px/1.2 var(--font-heading); letter-spacing: .05em; text-transform: uppercase; }
@@ -209,8 +208,6 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .analyze-button { width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid color-mix(in srgb, var(--color-neon-yellow) 82%, var(--color-deep-blue)); border-radius: 12px; background: var(--color-neon-yellow); color: var(--color-deep-blue); font-size: 16px; font-weight: 700; transition: background-color .15s; }
 .analyze-button:hover { background: color-mix(in srgb, var(--color-neon-yellow) 88%, var(--color-deep-blue)); }
 .analyze-button span { font-size: 18px; line-height: 10px; }
-.setup-note { display: flex; gap: 8px; align-items: flex-start; margin: 12px 0 16px; font-size: 12px; line-height: 1.45; color: var(--muted-foreground); }
-.setup-note svg { flex-shrink: 0; margin-top: 1px; }
 .panel-footnote { display: flex; gap: 8px; align-items: center; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted-foreground); }
 .step-number { font-family: var(--font-mono); color: var(--primary); }
 
@@ -683,7 +680,6 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .result-headline.is-up .result-headline-icon { color: var(--color-green); }
 .result-headline.is-down .result-headline-icon { color: var(--color-martian-red); }
 .result-headline-text { font: 700 17px/1.4 var(--font-heading); color: var(--foreground); }
-.result-headline-detail { margin-top: 4px; font-size: 13px; line-height: 1.45; color: var(--muted-foreground); }
 
 /* Evidence file: the technical record is folded by default */
 .evidence-more { margin-top: 4px; border-top: 1px solid var(--border); }

@@ -149,7 +149,6 @@ export function AppShell() {
             </div>
           </div>
           <div className="setup-meta">
-            <div className="setup-note"><Info size={16} /><span>Analyze requests the selected variable and the rest of the processed variables from NASA POWER, and colors the map for the selected state. Results are descriptive, not forecasts.</span></div>
             <div className="panel-footnote"><span className="step-number">01</span><span>SELECT LOCATION, VARIABLE &amp; MAP LAYER</span></div>
           </div>
         </section>

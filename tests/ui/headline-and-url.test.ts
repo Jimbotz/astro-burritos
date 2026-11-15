@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { headlineFor } from '../../lib/ui/headline'
 import { decodeQuery, encodeQuery, type SharedQuery } from '../../lib/ui/query-url'
-import type { PointResponse, RobustTrend, VariableResult } from '../../lib/api/v2'
+import type { RobustTrend, VariableResult } from '../../lib/api/v2'
 
 const trend = (overrides: Partial<RobustTrend>, display: Partial<RobustTrend['display']> = {}) => ({
   verdict: 'robust', claimAllowed: true, criteriaMet: 5, minimumDetectablePerDecade: 0.4, window: { startYear: 2001, endYear: 2024 },
@@ -10,33 +10,28 @@ const trend = (overrides: Partial<RobustTrend>, display: Partial<RobustTrend['di
 }) as unknown as RobustTrend
 
 const result = (label: string, t: RobustTrend) => ({ id: 'T2M', label: { es: label, en: label }, trendUnit: '°C/década', trend: t }) as unknown as VariableResult
-const point = (variables: VariableResult[]) => ({ support: { elevationM: 2146.7 }, variables }) as unknown as PointResponse
 
 describe('results headline (presentation rules in one sentence)', () => {
-  it('states a rise only for a claimable robust or probable trend, with the cell it describes', () => {
-    const r = result('Mean air temperature (2 m)', trend({}))
-    const h = headlineFor('Puebla, Mexico', r, point([r]))
+  it('states a rise only for a claimable robust or probable trend', () => {
+    const h = headlineFor('Puebla, Mexico', result('Mean air temperature (2 m)', trend({})))
     expect(h.tone).toBe('up')
     expect(h.text).toBe('In Puebla, Mexico, mean air temperature (2 m) rose by +0.45 °C/decade from 2001–2024: a robust trend that passes all five checks.')
-    expect(h.detail).toContain('0.5° × 0.625°')
-    expect(h.detail).toContain('2,147 m')
-    expect(h.detail).toContain('1 of 1 variables show a robust trend')
   })
 
   it('flags significant-but-small changes and never says "rose" for a weak signal', () => {
-    const small = headlineFor('X', result('T', trend({ verdict: 'probable', criteriaMet: 3 }, { slope: 0.05, exceedsRelevance: false })), point([]))
+    const small = headlineFor('X', result('T', trend({ verdict: 'probable', criteriaMet: 3 }, { slope: 0.05, exceedsRelevance: false })))
     expect(small.text).toContain('probable trend (3 of 5 checks)')
     expect(small.text).toContain('significant but small')
-    const weak = headlineFor('X', result('T', trend({ verdict: 'weak' })), point([]))
+    const weak = headlineFor('X', result('T', trend({ verdict: 'weak' })))
     expect(weak.tone).toBe('neutral')
     expect(weak.text).not.toMatch(/rose|fell/)
   })
 
   it('says "not detectable" is not "no change", and never claims a trend for rain', () => {
-    const none = headlineFor('X', result('T', trend({ verdict: 'not-detectable' })), point([]))
+    const none = headlineFor('X', result('T', trend({ verdict: 'not-detectable' })))
     expect(none.text).toContain('That is not the same as no change.')
     expect(none.text).toContain('0.40 °C/decade')
-    const rain = headlineFor('X', result('Annual precipitation', trend({ claimAllowed: false, verdict: 'weak' })), point([]))
+    const rain = headlineFor('X', result('Annual precipitation', trend({ claimAllowed: false, verdict: 'weak' })))
     expect(rain.tone).toBe('neutral')
     expect(rain.text).toContain('without a trend claim')
   })

@@ -1,9 +1,10 @@
 /**
- * Response contract of API v2 (GET /api/variables, GET /api/point, GET|POST /api/region).
+ * Response contract of API v2 (GET /api/variables, GET /api/point, GET|POST /api/region, GET /api/crosscheck).
  * The interface can import these types directly: `import type { PointResponse } from '@/lib/api/v2'`.
  * Full documentation and examples: docs/backend/api-v2.md and docs/backend/samples/.
  */
-import type { ApiWarning, RobustTrend, TrendDisplay, Verdict } from '../analysis/robust-assessment'
+import type { ApiWarning, RobustTrend, TrendDisplay, TrendLine, Verdict } from '../analysis/robust-assessment'
+import type { Agreement, AgreementReason, CONCORDANCE_RULES, LevelComparison, TrendComparison, TrendEvidence, YearToYear } from '../analysis/concordance'
 import type { AnnualPoint, CellSeasons, ClimatologyPoint, MonthlyPoint, SeasonDefinition } from '../analysis/annual-rules'
 import type { CellResult } from '../analysis/region'
 import type { LineFit, ProjectedValue, ProjectionSummary } from '../analysis/projection'
@@ -14,6 +15,7 @@ export const SCHEMA_VERSION = '2.0' as const
 /** Default comparison window: common window with IMERG (2025 is incomplete in IMERG Final). */
 export const DEFAULT_WINDOW = { startYear: 2001, endYear: 2024 } as const
 
+export type { Agreement, AgreementReason, LevelComparison, TrendComparison, TrendEvidence, TrendLine, YearToYear }
 export type { ApiWarning, RobustTrend, TrendDisplay, Verdict, AnnualPoint, ClimatologyPoint, MonthlyPoint, CellResult, PowerSourceInfo, ProcessingProfile, SeasonId, VariableDescriptor, VariableId, LineFit, ProjectedValue, ProjectionSummary, ProjectionRule, CellSeasons, SeasonDefinition }
 
 export type CellSupport = {
@@ -93,6 +95,59 @@ export type RegionResponse = {
    * cells[].fit; evaluate it with predict() from lib/analysis/projection.ts and draw it only when status is 'ok'.
    */
   projection: ProjectionSummary | null
+  sources: PowerSourceInfo[]
+  notes: string[]
+}
+
+/** One record's trend in GET /api/crosscheck: Sen slope with its Gilbert interval and the Hamed–Rao p, in mm/decade. */
+export type SourceTrend = {
+  nYears: number
+  excludedIncompleteYears: number[]
+  senPerDecade: number | null
+  ci95SenPerDecade: [number, number] | null
+  pValueHamedRao: number | null
+  pValueMannKendall: number | null
+  minimumDetectablePerDecade: number | null
+  line: TrendLine | null
+}
+
+export type CrosscheckSource = {
+  id: 'merra2' | 'imerg'
+  label: string
+  product: string
+  method: string
+  resolution: string
+  timeStandard: 'LST' | 'UTC'
+  /** Totals in mm inside the comparison window; incomplete years have value null and complete false. */
+  annual: AnnualPoint[]
+  trend: SourceTrend
+}
+
+/** Why the two records may agree or not: codes the interface turns into plain language (lib/ui/crosscheck-view.ts). */
+export type CrosscheckReason = 'different-methods' | 'satellite-transition' | 'station-skill' | 'below-detectable' | 'level-gap' | 'weak-year-to-year'
+
+export type CrosscheckComparison = {
+  id: 'annual' | 'wet'
+  label: { es: string; en: string }
+  months: number[]
+  merra2: CrosscheckSource
+  imerg: CrosscheckSource
+  level: LevelComparison
+  trend: TrendComparison
+  reasons: CrosscheckReason[]
+}
+
+export type CrosscheckResponse = {
+  schemaVersion: typeof SCHEMA_VERSION
+  generatedAt: string
+  request: { latitude: number; longitude: number; startYear: number; endYear: number }
+  /** The requested window starts no earlier than 1998, IMERG's first year in POWER. */
+  window: { startYear: number; endYear: number; clippedToImerg: boolean }
+  support: CellSupport
+  /** IMERG pixels averaged over the cell: how many overlap it and which share of the cell they cover (1 = all). */
+  footprint: { pixelDegrees: number; pixelCount: number; coveredFraction: number; box: { minLat: number; maxLat: number; minLon: number; maxLon: number } }
+  rules: typeof CONCORDANCE_RULES
+  comparisons: CrosscheckComparison[]
   sources: PowerSourceInfo[]
   notes: string[]
 }

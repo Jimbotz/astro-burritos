@@ -16,7 +16,9 @@ import { ResultHeadline } from '@/components/result-headline'
 import { DataSourceBadge } from '@/components/data-source-badge'
 import { SignalExplorer } from '@/components/signal-explorer'
 import { SignalHighlights } from '@/components/signal-highlights'
-import { usePointAnalysis } from '@/hooks/use-earthscope'
+import { PlaceComparison, RainCrosscheck } from '@/components/cross-check'
+import { useCrosscheck, usePointAnalysis } from '@/hooks/use-earthscope'
+import type { ComparePlaceId } from '@/lib/ui/crosscheck-view'
 import { useReducedMotion } from '@/hooks/use-browser'
 import type { VariableId } from '@/lib/api/v2'
 import { decodeQuery, encodeQuery, type SharedQuery } from '@/lib/ui/query-url'
@@ -24,11 +26,13 @@ import { decodeQuery, encodeQuery, type SharedQuery } from '@/lib/ui/query-url'
 const subscribeNothing = () => () => {}
 
 // Demonstration cases (step 1): one click fills the query and runs it. Coordinates: Puebla keeps the city point used by
-// default; Tlaxcala and Oaxaca use their Natural Earth label points, as the state select does.
-const EXAMPLES: Array<{ label: string; hint: string; region: Region; variable: VariableId; kind: LayerKind }> = [
+// default; Tlaxcala and Oaxaca use their Natural Earth label points, as the state select does. `target: 'crosscheck'`
+// scrolls to the cross-check cards instead of the map.
+const EXAMPLES: Array<{ label: string; hint: string; region: Region; variable: VariableId; kind: LayerKind; target?: 'crosscheck' }> = [
   { label: 'Warming in Puebla', hint: 'Mean air temperature: a robust warming trend, colored by trend on the map', region: { name: 'Puebla, Mexico', lat: 19.04, lon: -98.20, country: 'MEX', state: 'Puebla' }, variable: 'T2M', kind: 'trend' },
   { label: 'Coldest nights in Tlaxcala', hint: 'Coldest night of the year: the extreme that is warming fastest', region: { name: 'Tlaxcala, Mexico', lat: 19.4, lon: -98.16, country: 'MEX', state: 'Tlaxcala' }, variable: 'TNn', kind: 'anomaly' },
   { label: 'Rain in Oaxaca', hint: 'Annual precipitation: shown without a trend claim, and its projection is blocked', region: { name: 'Oaxaca, Mexico', lat: 16.94, lon: -96.21, country: 'MEX', state: 'Oaxaca' }, variable: 'PRECTOTCORR', kind: 'anomaly' },
+  { label: 'Two rain records disagree', hint: 'Tlaxcala rain: MERRA-2 and GPM IMERG tell different trend stories, so EarthScope makes no claim', region: { name: 'Tlaxcala, Mexico', lat: 19.4, lon: -98.16, country: 'MEX', state: 'Tlaxcala' }, variable: 'PRECTOTCORR', kind: 'anomaly', target: 'crosscheck' },
 ]
 
 export function AppShell() {
@@ -41,6 +45,8 @@ export function AppShell() {
   const [layerKind, setLayerKind] = useState<LayerKind>('anomaly')
   const [startYear, setStartYear] = useState(2001)
   const [endYear, setEndYear] = useState(2024)
+  // Second place of the place comparison. Tehuacán by default, so the first visit already shows Puebla vs Tehuacán.
+  const [compareWith, setCompareWith] = useState<ComparePlaceId | null>('tehuacan')
   // The first visit opens on the Puebla case already analyzed (a shared link replaces it with its own query).
   const [analysisRequested, setAnalysisRequested] = useState(true)
   // The globe starts still under reduced motion, until the user presses play or pause.
@@ -50,6 +56,8 @@ export function AppShell() {
   const [resetSignal, setResetSignal] = useState(0)
   // One request returns every processed variable at the analysis point (API v2).
   const point = usePointAnalysis(analysisRequested ? { latitude: region.lat, longitude: region.lon, startYear, endYear } : null)
+  // The second NASA rain record (GPM IMERG) for the same cell, requested with the point analysis.
+  const crosscheck = useCrosscheck(analysisRequested ? { latitude: region.lat, longitude: region.lon, startYear, endYear } : null)
   const requesting = point.isLoading
 
   // Shareable links: a valid ?place=…&var=… query restores step 1 once and runs the analysis. Read without an effect
@@ -69,6 +77,7 @@ export function AppShell() {
     setLayerKind(query.layer)
     setStartYear(query.startYear)
     setEndYear(query.endYear)
+    if (query.vs) setCompareWith(query.vs)
     setPaused(true)
     setAnalysisRequested(true)
     if (writeUrl) window.history.replaceState(null, '', encodeQuery(query))
@@ -87,13 +96,20 @@ export function AppShell() {
 
   function analyze() {
     setAnalysisRequested(true)
-    window.history.replaceState(null, '', encodeQuery({ region, variable, startYear, endYear, layer: layerKind }))
+    window.history.replaceState(null, '', encodeQuery({ region, variable, startYear, endYear, layer: layerKind, vs: compareWith ?? undefined }))
     showMap()
   }
 
+  // Choosing the comparison place never resets the analysis; the shared link follows it once results exist.
+  function chooseComparison(next: ComparePlaceId | null) {
+    setCompareWith(next)
+    if (analysisRequested) window.history.replaceState(null, '', encodeQuery({ region, variable, startYear, endYear, layer: layerKind, vs: next ?? undefined }))
+  }
+
   function runExample(example: (typeof EXAMPLES)[number]) {
-    apply({ region: example.region, variable: example.variable, startYear: 2001, endYear: 2024, layer: example.kind })
-    showMap()
+    apply({ region: example.region, variable: example.variable, startYear: 2001, endYear: 2024, layer: example.kind, vs: compareWith ?? undefined })
+    if (example.target === 'crosscheck') document.querySelector('.crosscheck-row')?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
+    else showMap()
   }
 
   // Results stay blurred until Analyze and pulse while the point request runs. Errors show sharp, with their retry.
@@ -178,6 +194,11 @@ export function AppShell() {
           <SignalHighlights point={point.data} isLoading={point.isLoading} error={point.error} onFocus={setFocus} />
         </div>
         <SignalExplorer point={point.data} isLoading={point.isLoading} error={point.error} analysisRequested={analysisRequested} focus={focus} onFocus={setFocus} onRetry={() => point.mutate()} startYear={startYear} endYear={endYear} />
+        {/* Cross-check: the same rain from a second NASA record, and the same signal at a second place. */}
+        <div className="crosscheck-row">
+          <RainCrosscheck place={region.name} data={crosscheck.data} isLoading={crosscheck.isLoading} error={crosscheck.error} analysisRequested={analysisRequested} onRetry={() => crosscheck.mutate()} />
+          <PlaceComparison region={region} variable={variable} point={point.data} compareWith={compareWith} onCompareWith={chooseComparison} startYear={startYear} endYear={endYear} analysisRequested={analysisRequested} />
+        </div>
         <EvidencePanel variable={variable} point={point.data} analysisRequested={analysisRequested} error={point.error} isLoading={point.isLoading} />
         </div>
         </section>

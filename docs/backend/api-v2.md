@@ -7,8 +7,9 @@ Corte: 2026-11-14. Rama `Guillermo`. Esta API procesa en el servidor todas las v
 | `GET /api/variables` | Catálogo: nombres (es/en), unidades, grupo, clase, disponibilidad, reglas y textos de veredicto | Construir selectores, leyendas y filtros sin escribir nada a mano |
 | `GET /api/point` | Todas las variables de una ubicación (celda POWER): series anuales y mensuales, climatología y evaluación de tendencia | Gráficas y panel de evidencia |
 | `GET /api/region?country=…&state=…` (o `POST` con polígono, o `GET` con caja) | Cuadrícula de celdas de una variable recortada a un estado o país, con tendencia por celda y serie regional | Mapa y gráfica regional |
+| `GET /api/crosscheck` | Lluvia de una celda según dos registros de NASA (MERRA-2 y GPM IMERG, ambos vía POWER): nivel, años húmedos y secos, concordancia de tendencia y razones (sección 7) | Tarjeta “Two NASA rain records” |
 
-Tipos TypeScript listos para importar: `lib/api/v2.ts` (`PointResponse`, `RegionResponse`, `VariablesResponse`) y `lib/variables/catalog.ts` (`VariableDescriptor`, `VARIABLES`). Ejemplos reales de cada respuesta: `docs/backend/samples/`.
+Tipos TypeScript listos para importar: `lib/api/v2.ts` (`PointResponse`, `RegionResponse`, `CrosscheckResponse`, `VariablesResponse`) y `lib/variables/catalog.ts` (`VariableDescriptor`, `VARIABLES`). Ejemplos reales de cada respuesta: `docs/backend/samples/`.
 
 ## 1. Variables incluidas
 
@@ -262,3 +263,51 @@ Se generaron llamando a esta misma API con datos reales de NASA POWER (2026-11-1
 6. Región: celdas MERRA-2 nativas, fracción dentro del polígono, línea base y anomalía reciente por celda, pendiente en la escala del perfil, FDR de campo (q < 0.10) y serie regional ponderada por fracción × cos(lat).
 
 Código: `lib/variables/catalog.ts`, `lib/analysis/{annual-rules,robust-stats,robust-assessment,region}.ts`, `lib/nasa/power.ts`, `lib/api/*`, `app/api/{variables,point,region}/route.ts`. Pruebas: `tests/analysis/*.test.ts`, `tests/api/validation.test.ts`.
+
+## 7. `GET /api/crosscheck` (lluvia: MERRA-2 contra GPM IMERG)
+
+`GET /api/crosscheck?latitude=19.40&longitude=-98.16&startYear=2001&endYear=2024` compara la lluvia de la celda MERRA-2 del punto con un segundo registro de NASA, GPM IMERG. Los dos vienen de la API pública de POWER y ninguno pide login ni token.
+
+**Peticiones a POWER**
+- **MERRA-2:** la misma petición mensual por punto que hace `GET /api/point`, con la URL idéntica, así que comparten caché.
+- **IMERG:** el parámetro `IMERG_PRECTOT` en `monthly/regional`, con `time-standard=UTC`. POWER solo sirve IMERG en UTC; en LST devuelve −999.
+- **Tamaño de la región:** el endpoint regional exige 2° por eje, así que se pide la caja de 2° × 2° centrada en la celda (400 píxeles de 0.1°).
+
+**Procesamiento**
+- **Huella común.** Los píxeles de IMERG se promedian sobre los límites de la celda MERRA-2. Cada uno pesa por su área dentro de la celda × cos(lat), y un mes cuenta solo si todos los píxeles que tocan la celda tienen valor. `footprint` reporta cuántos píxeles entraron y qué fracción de la celda cubren; si cubren menos de 99.9 %, la respuesta es 502.
+- **Mismas reglas que todo EarthScope.**
+  - Límites físicos de la lluvia y regla de 12/12 meses.
+  - Temporada de lluvias propia de la celda MERRA-2, aplicada a los dos registros.
+  - Sen con intervalo de Gilbert, p de Hamed–Rao y tendencia mínima detectable, en mm/década.
+- **Ventana.** Empieza en 1998 como mínimo, el primer año de IMERG; `window.clippedToImerg` lo indica. Con menos de 10 años responde 400, y en latitudes de más de ±60° responde 422.
+
+**Campos principales**
+
+| Campo | Contenido |
+|---|---|
+| `comparisons[]` | `annual` y, si la celda tiene temporada clara, `wet`. Cada uno trae `merra2` y `imerg` (serie anual y `trend`), `level`, `trend` y `reasons` |
+| `level` | `meanA` (MERRA-2) y `meanB` (IMERG) en los años completos en común, `differencePercent`, `sameLevel` (±10 %), `correlation` (r sin la tendencia de cada registro) y `yearToYear` (`strong` ≥ 0.7, `weak` < 0.4, `moderate`) |
+| `trend` | `agreement`: `agree`, `disagree`, `inconclusive` o `insufficient-data`. También trae `reason`, `detected` (p de Hamed–Rao < 0.05 en cada registro) e `intervalsOverlap` |
+| `reasons[]` | Códigos que la interfaz convierte en texto (`lib/ui/crosscheck-view.ts`): `different-methods`, `satellite-transition` (la ventana cruza 2014, cambio de TRMM a GPM), `station-skill`, `below-detectable`, `level-gap` y `weak-year-to-year` |
+| `rules` | Los umbrales usados (`CONCORDANCE_RULES` en `lib/analysis/concordance.ts`), fijados antes de calcular cualquier resultado |
+
+**Reglas de concordancia**
+- **Coinciden (`agree`):** los dos registros detectan tendencia del mismo signo y sus intervalos de 95 % se traslapan.
+- **Discrepan (`disagree`):** signos opuestos detectados, o intervalos que no se traslapan.
+- **No concluyente (`inconclusive`):** cualquier otro caso.
+
+La respuesta nunca dice que la lluvia sube o baja: la precipitación conserva `trendPolicy: 'show-without-claim'`.
+
+**Resultados medidos (2001–2024, lluvia anual)**
+
+| Celda | MERRA-2 | IMERG | Resultado |
+|---|---|---|---|
+| Puebla (19.04, −98.20) | +66 mm/década, p = 0.05005 | +22 mm/década, p = 0.50 | `inconclusive` (ninguno detecta); medias 884 y 913 mm, r = 0.68 |
+| Tlaxcala (19.40, −98.16) | +185 mm/década [+110, +293], p < 0.001 | −27 mm/década [−87, +35], p = 0.36 | `disagree` (intervalos separados) |
+| Tehuacán (18.46, −97.39) | −11 mm/década | −13 mm/década | `inconclusive`; medias 912 y 907 mm, r = 0.74 |
+
+**Tiempo, límite y pruebas**
+- **Tiempo medido:** 1–2 s sin caché.
+- **Límite por IP:** 20 consultas sin caché por minuto (429 con `Retry-After`). La CDN guarda la respuesta 24 h.
+- **Código:** `lib/api/crosscheck-service.ts`, `lib/analysis/{concordance,footprint}.ts`, `lib/nasa/power.ts` (`fetchImergBox`) y `app/api/crosscheck/route.ts`.
+- **Pruebas:** `tests/api/crosscheck.test.ts`, `tests/analysis/concordance.test.ts` y `tests/ui/crosscheck-view.test.tsx`. Usan la respuesta real de IMERG guardada en `tests/fixtures/power/`.

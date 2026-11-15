@@ -9,10 +9,14 @@
 export type RateLimitRule = { limit: number; windowMs: number }
 export type RateLimitResult = { ok: true; remaining: number } | { ok: false; retryAfterSeconds: number }
 
-/** Uncached region requests fetch up to ~10 POWER blocks each; point requests fetch two series. */
+/**
+ * Uncached region requests fetch up to ~10 POWER blocks each; point requests fetch two series; a cross-check fetches the
+ * monthly point series and one IMERG box (about 75 kB per year).
+ */
 export const RATE_LIMITS = {
   region: { limit: 12, windowMs: 60_000 },
   point: { limit: 30, windowMs: 60_000 },
+  crosscheck: { limit: 20, windowMs: 60_000 },
 } as const satisfies Record<string, RateLimitRule>
 
 const MAX_TRACKED_CLIENTS = 10_000

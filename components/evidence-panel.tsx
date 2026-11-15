@@ -134,7 +134,7 @@ export function EvidencePanel({ variable, point, analysisRequested, error, isLoa
 
     <div className="evidence-section">
       <h3><Satellite size={16} /> CHALLENGE DATA SOURCES</h3>
-      <p className="evidence-muted">The challenge lists several NASA and partner sources. EarthScope verified each one; only NASA POWER feeds this page today.</p>
+      <p className="evidence-muted">The challenge lists several NASA and partner sources. EarthScope verified each one; only the public NASA POWER API feeds this page: MERRA-2 for every variable and GPM IMERG for the rain cross-check. Nothing on this page needs a login.</p>
       <ul className="source-list">
         {CHALLENGE_SOURCES.map((source) => <li key={source.name}>
           <div className="source-head"><span className="evidence-value">{source.name}</span><span className={`source-status is-${source.status}`}>{SOURCE_STATUS_LABEL[source.status]}</span></div>

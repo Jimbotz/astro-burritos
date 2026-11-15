@@ -13,6 +13,24 @@ const BASE = 'https://power.larc.nasa.gov/api/temporal'
 export const CELL = { dLat: 0.5, dLon: 0.625 } as const
 export const TILE_DEGREES = 5
 
+/** Centre of the MERRA-2 cell that POWER's point endpoint returns for a coordinate. */
+export function cellCenter(latitude: number, longitude: number) {
+  return { lat: Math.round(latitude / CELL.dLat) * CELL.dLat, lon: Math.round(longitude / CELL.dLon) * CELL.dLon }
+}
+
+/**
+ * GPM IMERG monthly precipitation as POWER distributes it (parameter IMERG_PRECTOT, mm/day). Verified 2026-11-15:
+ * - native 0.1° pixels from 1998-01, public and without a login, like the rest of POWER;
+ * - UTC only: with time-standard=LST POWER returns −999 and "The IMERG Source Data is not available at the Local
+ *   Solar Time (LST) standard";
+ * - the regional endpoint needs a 2° range per axis ("Please provide at least a 2 degree range"), so a cell is read
+ *   from the 2° × 2° box centred on it (400 pixels, about 75 kB per year of monthly data).
+ * IMERG pixels are averaged over the MERRA-2 cell in lib/analysis/footprint.ts so both records describe one area.
+ */
+export const IMERG = { parameter: 'IMERG_PRECTOT', firstYear: 1998, pixelDegrees: 0.1, boxDegrees: 2, maxAbsLatitude: 60 } as const
+
+export type ImergPixel = { lat: number; lon: number; series: SeriesMap }
+
 /** `cancelled`: the client went away (request.signal aborted), so the remaining POWER calls were not made. */
 export type PowerErrorKind = 'rejected' | 'unavailable' | 'timeout' | 'invalid-payload' | 'cancelled'
 
@@ -114,6 +132,31 @@ export async function fetchDailyPoint(parameters: string[], latitude: number, lo
 }
 
 export type BBox = { minLat: number; maxLat: number; minLon: number; maxLon: number }
+
+/** The 2° × 2° box centred on a cell (the smallest region POWER accepts), kept inside ±180° longitude. */
+export function imergBox(center: { lat: number; lon: number }): BBox {
+  const half = IMERG.boxDegrees / 2
+  let minLon = center.lon - half
+  let maxLon = center.lon + half
+  if (minLon < -180) { minLon = -180; maxLon = -180 + IMERG.boxDegrees }
+  if (maxLon > 180) { maxLon = 180; minLon = 180 - IMERG.boxDegrees }
+  return { minLat: center.lat - half, maxLat: center.lat + half, minLon, maxLon }
+}
+
+/** IMERG monthly precipitation (mm/day) for every 0.1° pixel of a box. POWER serves IMERG only in UTC. */
+export async function fetchImergBox(box: BBox, startYear: number, endYear: number, signal?: AbortSignal): Promise<{ pixels: ImergPixel[]; source: PowerSourceInfo }> {
+  const url = new URL(`${BASE}/monthly/regional`)
+  url.search = new URLSearchParams({ parameters: IMERG.parameter, community: 'AG', 'latitude-min': String(box.minLat), 'latitude-max': String(box.maxLat), 'longitude-min': String(box.minLon), 'longitude-max': String(box.maxLon), start: String(startYear), end: String(endYear), format: 'JSON', 'time-standard': 'UTC' }).toString()
+  const payload = await powerFetch<PowerRegionalPayload>(url, 60_000, signal)
+  const fill = payload.header?.fill_value ?? -999
+  const pixels: ImergPixel[] = []
+  for (const feature of payload.features ?? []) {
+    const [lon, lat] = feature.geometry?.coordinates ?? []
+    if (typeof lat === 'number' && typeof lon === 'number') pixels.push({ lat, lon, series: parsePowerSeries(feature.properties?.parameter?.[IMERG.parameter], fill) })
+  }
+  if (!pixels.length) throw new PowerError('NASA POWER did not return IMERG precipitation for this area.', 502, 'invalid-payload')
+  return { pixels, source: sourceInfo('monthly-regional', url, payload.header) }
+}
 export type RegionalCellRaw = { id: string; lat: number; lon: number; elevationM: number | null; series: SeriesMap }
 
 export const cellId = (lat: number, lon: number) => `${lat.toFixed(3)}_${lon.toFixed(3)}`

@@ -1,6 +1,6 @@
 {
   "retrievedAt": "2026-11-15T08:22:00.394Z",
-  "note": "Real NASA POWER responses (API v2) saved for offline service tests. The regional file keeps only the cells around Tlaxcala.",
+  "note": "Real NASA POWER responses (API v2) saved for offline service tests. The regional file keeps only the cells around Tlaxcala. The IMERG file keeps only the pixels of the Puebla cell and a ring around it.",
   "requests": [
     {
       "file": "monthly-point-puebla.json",
@@ -19,6 +19,14 @@
       "url": "https://power.larc.nasa.gov/api/temporal/monthly/regional?parameters=T2M&community=AG&latitude-min=15&latitude-max=20&longitude-min=-100&longitude-max=-95&start=1981&end=2024&format=JSON",
       "features": 20,
       "bytes": 172786
+    },
+    {
+      "file": "monthly-regional-IMERG-puebla.json.gz",
+      "url": "https://power.larc.nasa.gov/api/temporal/monthly/regional?parameters=IMERG_PRECTOT&community=AG&latitude-min=18&latitude-max=20&longitude-min=-99.125&longitude-max=-97.125&start=2001&end=2024&format=JSON&time-standard=UTC",
+      "retrievedAt": "2026-11-15",
+      "features": 64,
+      "note": "Only the pixels of the Puebla MERRA-2 cell (19.0, -98.125) and a 0.1° ring around it; the full box has 400.",
+      "bytes": 286112
     }
   ]
 }

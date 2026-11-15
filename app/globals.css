@@ -615,6 +615,64 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .evidence-table thead th { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); }
 .evidence-table td { font-family: var(--font-mono); }
 
+/* ---------- Cross-check: two NASA rain records, and two places under the same rules ---------- */
+.crosscheck-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; scroll-margin-top: 16px; }
+.crosscheck-panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.crosscheck-intro { margin: 0; font-size: 14px; line-height: 1.5; color: var(--muted-foreground); }
+.crosscheck-intro strong { color: var(--foreground); }
+.crosscheck-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin: 0; padding: 14px; border: 1px dashed var(--border); border-radius: 12px; font-size: 14px; color: var(--muted-foreground); }
+.crosscheck-empty p { margin: 0; }
+p.crosscheck-empty { flex-direction: row; align-items: center; }
+.crosscheck-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.crosscheck-select { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted-foreground); }
+.crosscheck-select select { max-width: 220px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); font: 600 13px var(--font-body); color: var(--foreground); }
+/* Agreement in words: green agree, red disagree, neutral otherwise (the color never encodes a rain direction) */
+.agreement-chip { padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px; font: 700 13px/1.4 var(--font-mono); white-space: nowrap; color: var(--muted-foreground); background: var(--card); }
+.agreement-chip.is-agree { border-color: var(--color-green); background: var(--color-green); color: var(--color-white); }
+.agreement-chip.is-disagree { border-color: var(--color-martian-red); background: var(--color-martian-red); color: var(--color-white); }
+.agreement-chip.is-inconclusive { border-color: var(--color-deep-blue); color: var(--color-deep-blue); }
+.dual-chart { margin: 0; }
+.dual-line { stroke-width: 2; vector-effect: non-scaling-stroke; }
+.dual-trend { stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
+.dual-dot { stroke-width: 6; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.dual-series.is-a .dual-line, .dual-series.is-a .dual-trend, .dual-series.is-a .dual-dot { stroke: var(--primary); }
+.dual-series.is-b .dual-line, .dual-series.is-b .dual-trend, .dual-series.is-b .dual-dot { stroke: var(--color-purple); }
+.dual-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 6px; padding-left: 52px; font-size: 12px; color: var(--muted-foreground); }
+.dual-key { display: inline-flex; align-items: center; gap: 6px; }
+.dual-swatch { width: 18px; height: 0; border-top: 3px solid var(--primary); }
+.dual-key.is-b .dual-swatch { border-top-color: var(--color-purple); }
+.dual-key.is-trend .dual-swatch { border-top: 2px dashed var(--muted-foreground); }
+.check-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.check { display: flex; gap: 10px; min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--muted); }
+.check > svg { flex-shrink: 0; margin-top: 1px; }
+.check.is-yes > svg { color: var(--color-green); }
+.check.is-no > svg { color: var(--color-martian-red); }
+.check.is-unknown > svg { color: var(--muted-foreground); }
+.check > div { min-width: 0; flex: 1; }
+.check strong { font-size: 15px; }
+.check-word { margin-left: 6px; font: 600 12px var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted-foreground); }
+.check p { margin: 4px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted-foreground); }
+.check-table { width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 13px; }
+.check-table th, .check-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+.check-table thead th { font-size: 12px; font-weight: 700; color: var(--muted-foreground); }
+.check-table td { font-family: var(--font-mono); }
+.check > div:has(.check-table) { overflow-x: auto; }
+.crosscheck-why { padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; }
+.crosscheck-why summary { font-size: 14px; font-weight: 700; color: var(--primary); cursor: pointer; }
+.crosscheck-why ul { margin: 8px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.5; color: var(--foreground); }
+.crosscheck-why li + li { margin-top: 6px; }
+.crosscheck-foot { margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted-foreground); }
+.place-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.place-column { min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 12px; }
+.place-column:nth-child(1) { border-top: 3px solid var(--primary); }
+.place-column:nth-child(2) { border-top: 3px solid var(--color-purple); }
+.place-column h3 { margin: 0; font-size: 15px; }
+.place-metrics { display: grid; gap: 2px; margin: 6px 0 0; }
+.place-metrics div { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.place-metrics dt { color: var(--muted-foreground); }
+.place-metrics dd { margin: 0; font: 500 13px var(--font-mono); text-align: right; }
+.place-sentence { margin: 0; padding: 12px 14px; border-left: 3px solid var(--color-deep-blue); background: var(--muted); font-size: 15px; line-height: 1.5; }
+
 @media (max-width: 760px) {
   .detail-grid, .detail-side { grid-template-columns: 1fr; }
   .signal-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
@@ -643,6 +701,8 @@ button:disabled { cursor: not-allowed; opacity: .45; }
   /* Not enough width for three query columns: the map layer and Analyze move under location and period. */
   .query-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); grid-template-areas: "main vars" "layer vars"; }
   .maps-row .globe-stage { min-height: 320px; }
+  /* The two cross-check cards stack: each needs the width for its chart and table */
+  .crosscheck-row { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 980px) {
   /* Globe above the 2D map */
@@ -669,6 +729,9 @@ button:disabled { cursor: not-allowed; opacity: .45; }
   .legend-divider { display: none; }
   .chart-header { flex-wrap: wrap; }
   .evidence-source { grid-template-columns: 1fr; }
+  .place-columns { grid-template-columns: minmax(0, 1fr); }
+  .crosscheck-select { width: 100%; justify-content: space-between; }
+  .crosscheck-select select { flex: 1; max-width: none; }
   .footer-center { order: 3; width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }

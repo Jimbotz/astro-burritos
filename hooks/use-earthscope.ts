@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import useSWR from 'swr'
-import type { PointResponse, RegionResponse, VariableId } from '@/lib/api/v2'
+import type { CrosscheckResponse, PointResponse, RegionResponse, VariableId } from '@/lib/api/v2'
 
 // Client hooks for API v2: SWR, no refetch on focus,
 // and the server's `error` message surfaced as-is so the panels can show it.
@@ -19,6 +19,12 @@ export type PointRequest = { latitude: number; longitude: number; startYear: num
 export function usePointAnalysis(request: PointRequest | null) {
   const key = request ? `/api/point?${new URLSearchParams({ latitude: String(request.latitude), longitude: String(request.longitude), startYear: String(request.startYear), endYear: String(request.endYear) })}` : null
   return useSWR<PointResponse, Error>(key, async (url: string) => readJson<PointResponse>(await fetch(url)), { revalidateOnFocus: false })
+}
+
+/** MERRA-2 vs GPM IMERG rain for the analysis cell (GET /api/crosscheck). Pass null to skip. */
+export function useCrosscheck(request: PointRequest | null) {
+  const key = request ? `/api/crosscheck?${new URLSearchParams({ latitude: String(request.latitude), longitude: String(request.longitude), startYear: String(request.startYear), endYear: String(request.endYear) })}` : null
+  return useSWR<CrosscheckResponse, Error>(key, async (url: string) => readJson<CrosscheckResponse>(await fetch(url)), { revalidateOnFocus: false })
 }
 
 /** A map area by its Natural Earth id: ADM0_A3 country code and, for a state, its exact name. */

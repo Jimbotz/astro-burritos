@@ -2,20 +2,21 @@
 import { annualFromDaily, annualFromMonthly, applyBounds, BASE_PERIOD, baselineMean, calendarThresholds, cellSeasons, monthlyClimatology, monthlySeries, seasonalValues, withAnomalies, type SeriesMap } from '../analysis/annual-rules'
 import { assessSeries, finalizeFamily, optionsFromProfile, sensitivityWindow, warning, type RobustTrend } from '../analysis/robust-assessment'
 import { cellBounds } from '../analysis/region'
-import { CELL, fetchDailyPoint, fetchMonthlyPoint } from '../nasa/power'
+import { CELL, cellCenter, fetchDailyPoint, fetchMonthlyPoint } from '../nasa/power'
 import { POINT_VARIABLE_IDS, VARIABLES, type PowerDailyParameter, type PowerMonthlyParameter, type VariableId } from '../variables/catalog'
 import { SCHEMA_VERSION, type PointResponse, type VariableResult } from './v2'
 
-const FETCH_START = 1981
+export const FETCH_START = 1981
+const pointVariables = VARIABLES.filter((variable) => variable.availability.point)
+/** The one monthly request behind every point analysis. GET /api/crosscheck sends the identical URL to share its cache. */
+export const MONTHLY_POINT_PARAMETERS = [...new Set(pointVariables.filter((v) => v.source.endpoint === 'monthly').flatMap((v) => v.source.parameters))] as PowerMonthlyParameter[]
+const DAILY_POINT_PARAMETERS = [...new Set(pointVariables.filter((v) => v.source.endpoint === 'daily').flatMap((v) => v.source.parameters))] as PowerDailyParameter[]
 
 export async function analyzePoint(latitude: number, longitude: number, startYear: number, endYear: number, requested: VariableId[], signal?: AbortSignal): Promise<PointResponse> {
   const fetchEnd = Math.max(endYear, BASE_PERIOD.endYear)
-  const pointVariables = VARIABLES.filter((variable) => variable.availability.point)
-  const monthlyParams = [...new Set(pointVariables.filter((v) => v.source.endpoint === 'monthly').flatMap((v) => v.source.parameters))] as PowerMonthlyParameter[]
-  const dailyParams = [...new Set(pointVariables.filter((v) => v.source.endpoint === 'daily').flatMap((v) => v.source.parameters))] as PowerDailyParameter[]
   const [monthly, daily] = await Promise.all([
-    fetchMonthlyPoint(monthlyParams, latitude, longitude, FETCH_START, fetchEnd, signal),
-    fetchDailyPoint(dailyParams, latitude, longitude, FETCH_START, fetchEnd, signal),
+    fetchMonthlyPoint(MONTHLY_POINT_PARAMETERS, latitude, longitude, FETCH_START, fetchEnd, signal),
+    fetchDailyPoint(DAILY_POINT_PARAMETERS, latitude, longitude, FETCH_START, fetchEnd, signal),
   ])
   const thresholds: Record<string, Map<string, number> | null> = {}
   const seasonal: Array<{ id: string; trend: RobustTrend }> = []
@@ -63,8 +64,7 @@ export async function analyzePoint(latitude: number, longitude: number, startYea
   })
   finalizeFamily(results.map((result) => ({ id: result.id, trend: result.trend })))
   finalizeFamily(seasonal)
-  const centerLat = Math.round(latitude / CELL.dLat) * CELL.dLat
-  const centerLon = Math.round(longitude / CELL.dLon) * CELL.dLon
+  const { lat: centerLat, lon: centerLon } = cellCenter(latitude, longitude)
   return {
     schemaVersion: SCHEMA_VERSION,
     generatedAt: new Date().toISOString(),

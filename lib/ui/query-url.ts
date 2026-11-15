@@ -1,4 +1,5 @@
 import { getVariable, type VariableId } from '../variables/catalog'
+import { comparePlace, type ComparePlaceId } from './crosscheck-view'
 
 /** A shareable analysis: what step 1 holds when Analyze is pressed. */
 export type SharedQuery = {
@@ -7,6 +8,8 @@ export type SharedQuery = {
   startYear: number
   endYear: number
   layer: 'anomaly' | 'trend' | 'mean'
+  /** Second place of the place comparison (?vs=tehuacan); absent when none is chosen. */
+  vs?: ComparePlaceId
 }
 
 // The period picker offers 2001–2024; anything outside is ignored rather than trusted.
@@ -26,6 +29,7 @@ export function encodeQuery(query: SharedQuery): string {
   })
   if (query.region.country) params.set('country', query.region.country)
   if (query.region.state) params.set('state', query.region.state)
+  if (query.vs) params.set('vs', query.vs)
   return `?${params}`
 }
 
@@ -42,6 +46,7 @@ export function decodeQuery(search: string): SharedQuery | null {
   const layer = params.get('layer') ?? 'anomaly'
   const country = params.get('country') ?? undefined
   const state = params.get('state') ?? undefined
+  const vs = params.get('vs')
   if (!name || name.length > 120 || params.get('lat') === null || params.get('lon') === null) return null
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null
   if (!variable || !variable.availability.region) return null
@@ -49,5 +54,7 @@ export function decodeQuery(search: string): SharedQuery | null {
   if (!(LAYERS as readonly string[]).includes(layer)) return null
   if (country !== undefined && !/^[A-Z]{3}$/.test(country)) return null
   if (state !== undefined && (!country || state.length > 120)) return null
-  return { region: { name, lat, lon, country, state }, variable: variable.id, startYear, endYear, layer: layer as SharedQuery['layer'] }
+  // An unknown comparison place is dropped, not fatal: the rest of the link still restores the analysis.
+  const place = comparePlace(vs)
+  return { region: { name, lat, lon, country, state }, variable: variable.id, startYear, endYear, layer: layer as SharedQuery['layer'], ...(place ? { vs: place.id } : {}) }
 }

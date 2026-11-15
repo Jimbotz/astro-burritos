@@ -26,6 +26,8 @@ The next data milestone must use more than NASA POWER and must include the follo
 | Deferred | [SWOT](https://www.asc-csa.gc.ca/eng/satellites/swot/) | Possible later water case study | Water surface elevation, area, slope or discharge-derived products | Removed from the MVP: short/irregular coverage and weak fit for Tehuacán/Puebla water questions |
 | Conditional | [RADARSAT/Geo.ca and the SAR tutorial](https://github.com/asc-csa/Synthetic_Aperture_Radar_Tutorial) | Later land/wetness/change case in suitable Canadian regions | SAR backscatter or derived land/water classes | Geographic scope and licensing must be confirmed before inclusion |
 
+> **Status, 2026-11-15.** GPM IMERG is now integrated without a login, through the NASA POWER API itself (parameter `IMERG_PRECTOT`, 0.1°, from 1998, served only in UTC). `GET /api/crosscheck` compares it with MERRA-2 for the analysis cell; see [`docs/science/methodology.md`](../science/methodology.md). Giovanni, AppEEARS and the Hydrology Time Series tool need a NASA Earthdata login, so the app does not depend on them: anyone must be able to run it. MODIS/VIIRS subsets are available without a login from the ORNL DAAC web service (at most 10 dates per request), which is the planned route for vegetation and land-surface temperature.
+
 Giovanni, AppEEARS and GIBS are access/analysis/visualization services as well as entry points. The canonical bundle must record the underlying dataset and product, not only the service name. POWER and IMERG are complementary products, not fully independent ground truth: both can incorporate gauge information or related atmospheric constraints.
 
 ## Deep processing pipeline
@@ -112,6 +114,9 @@ If a later research phase needs a projection, it must be a separate artifact:
 - Gate: every observation can be traced back to a source request/download and native unit.
 
 ### Phase B — Precipitation comparison
+
+**Status, 2026-11-15:** implemented for the analysis cell, with IMERG read through NASA POWER instead of Giovanni (`GET /api/crosscheck`, rules fixed in `lib/analysis/concordance.ts`). The Puebla vs. Tehuacán comparison runs in the interface for any variable. The study polygons and the reproduction manifest below are still open.
+
 
 - Select and validate `GPM_3IMERGM_07` through the CMR/GES DISC metadata and Giovanni. Do not assume 2025 is complete; compute `commonEndYear = min(POWER, IMERG, selected MODIS, station/reference manifests)`.
 - Define Puebla/Tehuacán study polygons and aggregate both products to the same declared support; retain the native POWER cell as a separate context.

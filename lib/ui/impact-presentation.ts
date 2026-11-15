@@ -1,9 +1,9 @@
 /**
- * Presentation of impact-lens fields: number formatting by unit, trend and interval text, period and quality lines.
+ * Presentation of impact-lens fields: number formatting by unit, period text and the colour family of each card.
  * Pure formatting of what the backend returns; no statistics are recomputed here.
  */
 import type { ImpactIndicator, ImpactLens, ImpactResponse } from '@/lib/api/impact-types'
-import { formatNumber, formatPValue, formatSigned, unitEn } from './format'
+import { formatNumber, unitEn } from './format'
 
 export const LENS_NAME: Record<ImpactLens, { title: string; subtitle: string; sources: string }> = {
   water: { title: 'Water Signal', subtitle: 'Municipal water management', sources: 'NASA POWER + CONAGUA/SMN' },
@@ -25,31 +25,37 @@ export function formatImpactValue(indicator: Pick<ImpactIndicator, 'value' | 'un
   return formatNumber(indicator.value, impactDigits(indicator.unit))
 }
 
-export function trendText(indicator: ImpactIndicator) {
-  const trend = indicator.trend
-  if (!trend) return null
-  const unit = unitEn(trend.unit)
-  const digits = impactDigits(unit)
-  return {
-    rate: `${formatSigned(trend.slopePerDecade, digits)} ${unit}`,
-    interval: trend.confidenceInterval95 ? `95% CI ${formatSigned(trend.confidenceInterval95[0], digits)} to ${formatSigned(trend.confidenceInterval95[1], digits)}` : '95% CI not estimable',
-    test: `Mann–Kendall (Hamed–Rao) p = ${formatPValue(trend.pValue)}${trend.adjustedPValue !== null ? ` · q = ${formatPValue(trend.adjustedPValue)}` : ''} · ${trend.mannKendallSignificant ? 'significant' : 'not significant'}`,
-    verdict: trend.status === 'blocked' ? 'Blocked by data quality' : trend.status === 'robust' ? 'Robust trend' : trend.status === 'probable' ? 'Probable trend' : trend.status === 'weak' ? 'Weak signal' : 'No detectable trend',
-    claim: trend.claimAllowed ? null : 'Shown without an increase/decrease claim',
-  }
-}
-
 export const periodText = (period: { startYear: number; endYear: number }) => (period.startYear === period.endYear ? String(period.startYear) : `${period.startYear}–${period.endYear}`)
-
-export function qualityText(indicator: ImpactIndicator) {
-  const q = indicator.quality
-  const base = `${q.validRecords} of ${q.expectedRecords} complete ${indicator.trend ? 'years' : 'records'} (${Math.round(q.completeness * 100)}%)`
-  return q.outOfBoundsCount ? `${base} · ${q.outOfBoundsCount.toLocaleString('en-US')} flagged values left out` : base
-}
 
 /** "NASA POWER + CONAGUA/SMN" style line from the sources the response used. */
 export function sourceLine(response: ImpactResponse) {
   return LENS_NAME[response.lens].sources
 }
 
-export const yesNo = (value: boolean | null) => (value === null ? 'not evaluable' : value ? 'active' : 'inactive')
+/**
+ * Colour family of an indicator card: warm (orange) for warm days and nights, mean maximum and mean temperature, blue
+ * when such an index is falling or the indicator is a low temperature (mean minimum), red for the hottest day, blue for
+ * the coldest night, green for the exposed population; the water-lens cards stay neutral.
+ */
+export type CardPalette = 'warm' | 'cool' | 'hot' | 'cold' | 'green' | 'neutral'
+
+export function cardPalette(indicator: Pick<ImpactIndicator, 'id' | 'trend'>): CardPalette {
+  switch (indicator.id) {
+    case 'TX90p':
+    case 'TN90p':
+      return indicator.trend?.direction === 'decreasing' ? 'cool' : 'warm'
+    case 'TX':
+    case 'T2M':
+      return 'warm'
+    case 'TN':
+      return 'cool'
+    case 'TXx':
+      return 'hot'
+    case 'TNn':
+      return 'cold'
+    case 'population-exposure':
+      return 'green'
+    default:
+      return 'neutral'
+  }
+}

@@ -113,6 +113,8 @@ export type ImpactLegend = {
   target: 'cells' | 'municipalities'
   classes: Array<{ id: string; label: Bilingual; color: string }>
   note: Bilingual
+  /** Plain-language explanation of the layer: what each colour shows and what the layer is for. */
+  about: { shows: Bilingual; useFor: Bilingual }
 }
 
 export type ImpactCell = {

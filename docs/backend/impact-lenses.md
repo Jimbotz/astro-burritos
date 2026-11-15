@@ -97,7 +97,7 @@ La interfaz nunca deduce el color: lo toma de `severity`. Junto al color siempre
 - Exposición: `population-exposure`, `urban-exposure`.
 - Prioridad combinada: `priority-zones`.
 
-Cada celda y cada municipio trae `class`; el color sale solo de `layers[].classes`. Para un estado sin snapshot, `map.available` es `false` y `reason` lo explica.
+Cada celda y cada municipio trae `class`; el color sale solo de `layers[].classes`. Cada capa trae además `about.shows` (qué representa) y `about.useFor` (para qué sirve), en español e inglés; la interfaz muestra los de la capa elegida bajo los botones. Para un estado sin snapshot, `map.available` es `false` y `reason` lo explica.
 
 ## 3. Ventanas (§6)
 
@@ -144,9 +144,11 @@ Después de *Analyze region*, la sección **Impact lenses** muestra dos tarjetas
    - el resumen, los componentes y la acción sugerida ("A planning signal, not a command");
    - la fuente y la limitación;
    - en calor, peligro, exposición y prioridad separados; en agua, la validación con la estación;
-   - las tarjetas de indicadores, con los botones *Why?*, *Data source* y *Limitations*;
-   - el mapa temático, con capas agrupadas en peligro, exposición y prioridad;
-   - la tabla de municipios, los avisos, la calidad de datos, *Sources & methods* y *What this lens cannot conclude*.
+   - las tarjetas de indicadores: valor principal, qué significa y un botón *Why?* con la definición, el método y la serie anual. Cada familia tiene su color: cálidos para días y noches cálidos (azul si bajan), rojo para el día más cálido, azul para la noche más fría y la mínima media, verde para la población expuesta;
+   - el mapa temático, con un solo renglón de capas, la explicación de la capa elegida (qué muestra y para qué sirve) y una leyenda que solo lista las clases presentes en el mapa y el punto de análisis;
+   - los avisos, la calidad de datos, *Sources & methods* y *What this lens cannot conclude*.
+
+La tabla de municipios sigue en la respuesta de la API (`municipalities[]`), pero la interfaz no la muestra.
 
 Durante la carga solo hay esqueletos, sin números. Componentes: `components/impact-*.tsx`. Presentación: `lib/ui/impact-*.ts`.
 

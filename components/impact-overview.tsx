@@ -87,22 +87,6 @@ export function ImpactOverview({ data }: { data: ImpactResponse }) {
     <h4 className="impact-subtitle">Map</h4>
     <ImpactMapLayer key={`${data.lens}-${data.map.stateCode}`} map={data.map} scope={data.scope} />
 
-    {data.municipalities.length > 0 && <details className="info-details impact-municipalities">
-      <summary><Info size={16} /> Municipalities ({data.municipalities.length})</summary>
-      <div className="evidence-table-wrap">
-        <table className="evidence-table">
-          <thead><tr><th scope="col">Municipality</th><th scope="col">Population 2020</th><th scope="col">Urban</th>{data.lens === 'water' && <th scope="col">Drought D1+ (last 5 years)</th>}</tr></thead>
-          <tbody>{[...data.municipalities].sort((a, b) => (b.population ?? 0) - (a.population ?? 0)).slice(0, 40).map((item) => <tr key={item.code}>
-            <th scope="row">{item.name} <span className="impact-code">{item.code}</span></th>
-            <td>{item.population?.toLocaleString('en-US') ?? '—'}</td>
-            <td>{item.urbanFraction !== null ? `${Math.round(item.urbanFraction * 100)}%` : '—'}</td>
-            {data.lens === 'water' && <td>{item.drought ? `${item.drought.recentYearsWithDrought} of ${item.drought.recentYearsCovered}` : 'no records'}</td>}
-          </tr>)}</tbody>
-        </table>
-      </div>
-      {data.municipalities.length > 40 && <p>The 40 most populous are listed; the API returns all {data.municipalities.length}.</p>}
-    </details>}
-
     {data.warnings.length > 0 && <div className="impact-warnings" role="note"><TriangleAlert size={16} aria-hidden="true" /><ul>{data.warnings.map((item) => <li key={item.en}>{item.en}</li>)}</ul></div>}
 
     <p className="impact-quality">Data quality at the reference cell: {data.quality.reference ? `${data.quality.reference.valid.toLocaleString('en-US')} of ${data.quality.reference.total.toLocaleString('en-US')} daily NASA POWER records valid${Object.keys(data.quality.reference.flagged).length ? `; flagged: ${Object.entries(data.quality.reference.flagged).map(([flag, count]) => `${flag} ${count}`).join(', ')}` : '; none flagged'}` : 'not available'}.{data.quality.notes.length ? ` ${data.quality.notes.map((note) => note.en).join(' ')}` : ''}</p>

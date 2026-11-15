@@ -4,7 +4,7 @@ import { analyzeImpact, type ImpactRequest } from '../../lib/api/impact-service'
 import type { HeatImpactResponse, WaterImpactResponse } from '../../lib/api/impact-types'
 import { ImpactOverview } from '../../components/impact-overview'
 import { ImpactIndicatorCard } from '../../components/impact-indicator-card'
-import { formatImpactValue, trendText } from '../../lib/ui/impact-presentation'
+import { cardPalette, formatImpactValue } from '../../lib/ui/impact-presentation'
 import { fakeImpactPower } from '../helpers/impact-fixtures'
 
 let water: WaterImpactResponse
@@ -36,17 +36,59 @@ describe('lens cards render only what the backend returned', () => {
     expect(html).not.toMatch(/NaN|undefined/)
   })
 
-  it('an indicator card shows value, unit, trend, interval, test, period, source, quality and the three detail buttons', () => {
+  it('an indicator card keeps only the main value, what it means and a Why? button', () => {
     const nights = heat.indicators.find((item) => item.id === 'TN90p')!
     const html = renderToStaticMarkup(<ImpactIndicatorCard indicator={nights} />)
-    const trend = trendText(nights)!
-    for (const text of ['Warm nights (TN90p)', formatImpactValue(nights), trend.rate, trend.interval, 'Mann–Kendall (Hamed–Rao)', '2001–2024', 'NASA', 'complete years', 'Why?', 'Data source', 'Limitations']) expect(html, text).toContain(text)
-    expect(html.match(/aria-expanded="false"/g)).toHaveLength(3)
+    for (const text of ['Warm nights (TN90p)', formatImpactValue(nights), '% of days', 'Mean of 2020–2024', nights.interpretation.en, 'Why?']) expect(html, text).toContain(text)
+    for (const text of ['Interval', 'Mann–Kendall', 'Data source', 'Limitations', 'complete years']) expect(html, text).not.toContain(text)
+    expect(html.match(/aria-expanded="false"/g)).toHaveLength(1)
   })
 
-  it('precipitation keeps its no-claim label instead of a rate', () => {
+  it('colours the cards by indicator: warm days and nights, red hottest day, blue coldest night, green population', () => {
+    const palette = (id: string) => cardPalette(heat.indicators.find((item) => item.id === id)!)
+    expect([palette('TN90p'), palette('TX90p'), palette('TXx'), palette('TNn'), palette('TN'), palette('population-exposure')]).toEqual(['warm', 'warm', 'hot', 'cold', 'cool', 'green'])
+    // A warm-days or warm-nights index that is falling turns blue.
+    expect(cardPalette({ id: 'TN90p', trend: { ...heat.indicators[0].trend!, direction: 'decreasing' } })).toBe('cool')
+    expect(renderToStaticMarkup(<ImpactIndicatorCard indicator={heat.indicators.find((item) => item.id === 'TXx')!} />)).toContain('impact-card is-hot')
+    expect(cardPalette(water.indicators[0])).toBe('neutral')
+  })
+
+  it('precipitation states its no-claim meaning instead of a rate', () => {
     const rain = water.indicators.find((item) => item.id === 'precipitation')!
-    expect(renderToStaticMarkup(<ImpactIndicatorCard indicator={rain} />)).toContain('Shown without an increase/decrease claim')
+    expect(renderToStaticMarkup(<ImpactIndicatorCard indicator={rain} />)).toContain('is shown without stating an increase or decrease')
+  })
+
+  it('keeps the map simple and drops the municipalities list', () => {
+    const html = renderToStaticMarkup(<ImpactOverview data={heat} />)
+    expect(html).not.toContain('Municipalities (')
+    expect(html).not.toContain('impact-map-group')
+    // The legend lists only the classes present on the map, plus the analysis point.
+    const legend = html.slice(html.indexOf('class="impact-legend"'))
+    expect(legend).toContain('High-exposure signal')
+    expect(legend).not.toContain('Exposure unknown')
+    expect(legend).toContain('is-point')
+  })
+
+  it('explains what the selected map filter shows and what it is for, and every filter carries its explanation', () => {
+    const html = renderToStaticMarkup(<ImpactOverview data={heat} />)
+    const priority = heat.map.layers.find((item) => item.id === heat.map.defaultLayer)!
+    expect(html).toContain('What it shows:')
+    expect(html).toContain(priority.about.shows.en)
+    expect(html).toContain(priority.about.useFor.en)
+    for (const layer of [...heat.map.layers, ...water.map.layers]) {
+      expect(layer.about.shows.en.length, layer.id).toBeGreaterThan(30)
+      expect(layer.about.useFor.es.length, layer.id).toBeGreaterThan(20)
+    }
+    // Each heat filter button also carries its explanation as a tooltip.
+    expect(html.match(/<button type="button" aria-pressed="(true|false)" title="/g)).toHaveLength(heat.map.layers.length)
+  })
+
+  it('still renders the map from a response cached before the layer explanations existed', () => {
+    const stale = structuredClone(heat)
+    for (const layer of stale.map.layers) delete (layer as Partial<typeof layer>).about
+    const html = renderToStaticMarkup(<ImpactOverview data={stale} />)
+    expect(html).toContain('class="impact-map-svg"')
+    expect(html).not.toContain('What it shows:')
   })
 
   it('explains an insufficient-data result: missing source, period, coverage and what is needed', () => {

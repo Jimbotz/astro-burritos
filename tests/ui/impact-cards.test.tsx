@@ -44,13 +44,15 @@ describe('lens cards render only what the backend returned', () => {
     expect(html.match(/aria-expanded="false"/g)).toHaveLength(1)
   })
 
-  it('colours the cards by indicator: warm days and nights, red hottest day, blue coldest night, green population', () => {
-    const palette = (id: string) => cardPalette(heat.indicators.find((item) => item.id === id)!)
-    expect([palette('TN90p'), palette('TX90p'), palette('TXx'), palette('TNn'), palette('TN'), palette('population-exposure')]).toEqual(['warm', 'warm', 'hot', 'cold', 'cool', 'green'])
-    // A warm-days or warm-nights index that is falling turns blue.
-    expect(cardPalette({ id: 'TN90p', trend: { ...heat.indicators[0].trend!, direction: 'decreasing' } })).toBe('cool')
-    expect(renderToStaticMarkup(<ImpactIndicatorCard indicator={heat.indicators.find((item) => item.id === 'TXx')!} />)).toContain('impact-card is-hot')
-    expect(cardPalette(water.indicators[0])).toBe('neutral')
+  it('colours every card by theme: water, heat, moisture, population', () => {
+    expect(Object.fromEntries([...water.indicators, ...heat.indicators].map((item) => [item.id, cardPalette(item)]))).toMatchObject({
+      precipitation: 'water', balance: 'water', 'observed-drought': 'water', et0: 'moisture', 'root-zone-wetness': 'moisture',
+      TN90p: 'heat', TX90p: 'heat', TXx: 'heat', TNn: 'heat', TN: 'heat', 'population-exposure': 'population',
+    })
+    // Every indicator the backend returns today has a theme; only an unknown id stays neutral.
+    expect([...water.indicators, ...heat.indicators].filter((item) => cardPalette(item) === 'neutral')).toEqual([])
+    expect(cardPalette({ id: 'not-in-the-catalog' })).toBe('neutral')
+    expect(renderToStaticMarkup(<ImpactIndicatorCard indicator={heat.indicators.find((item) => item.id === 'TXx')!} />)).toContain('impact-card is-heat')
   })
 
   it('precipitation states its no-claim meaning instead of a rate', () => {

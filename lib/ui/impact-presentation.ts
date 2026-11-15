@@ -33,29 +33,17 @@ export function sourceLine(response: ImpactResponse) {
 }
 
 /**
- * Colour family of an indicator card: warm (orange) for warm days and nights, mean maximum and mean temperature, blue
- * when such an index is falling or the indicator is a low temperature (mean minimum), red for the hottest day, blue for
- * the coldest night, green for the exposed population; the water-lens cards stay neutral.
+ * Colour family of an indicator card, one per theme: water (rain, water balance, observed drought), heat (temperature
+ * indices), moisture (root-zone wetness and ET0, the air's demand for moisture) and population (exposure). The colour
+ * names the theme only and never a trend direction; an id the catalog does not know stays neutral.
  */
-export type CardPalette = 'warm' | 'cool' | 'hot' | 'cold' | 'green' | 'neutral'
+export type CardPalette = 'water' | 'heat' | 'moisture' | 'population' | 'neutral'
 
-export function cardPalette(indicator: Pick<ImpactIndicator, 'id' | 'trend'>): CardPalette {
-  switch (indicator.id) {
-    case 'TX90p':
-    case 'TN90p':
-      return indicator.trend?.direction === 'decreasing' ? 'cool' : 'warm'
-    case 'TX':
-    case 'T2M':
-      return 'warm'
-    case 'TN':
-      return 'cool'
-    case 'TXx':
-      return 'hot'
-    case 'TNn':
-      return 'cold'
-    case 'population-exposure':
-      return 'green'
-    default:
-      return 'neutral'
-  }
+const PALETTE: Record<string, CardPalette> = {
+  precipitation: 'water', 'precipitation-wet': 'water', balance: 'water', 'balance-wet': 'water', 'observed-drought': 'water',
+  et0: 'moisture', 'et0-wet': 'moisture', 'root-zone-wetness': 'moisture',
+  TX90p: 'heat', TN90p: 'heat', TXx: 'heat', TNn: 'heat', TX: 'heat', TN: 'heat', T2M: 'heat',
+  'population-exposure': 'population',
 }
+
+export const cardPalette = (indicator: Pick<ImpactIndicator, 'id'>): CardPalette => PALETTE[indicator.id] ?? 'neutral'

@@ -10,7 +10,7 @@ import { formatNumber, unitEn } from '@/lib/ui/format'
 
 // One indicator, reduced to what a reader needs: the main value, what it means, and a Why? panel with the definition,
 // the method and the annual series. Everything comes from the backend fields; the card only formats them. The colour
-// family follows the indicator (warm days and nights, hottest day, coldest night, exposed population).
+// family follows the indicator's theme (water, heat, moisture, population; `cardPalette`).
 export function ImpactIndicatorCard({ indicator }: { indicator: ImpactIndicator }) {
   const [open, setOpen] = useState(false)
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, '')

@@ -885,18 +885,16 @@ p.crosscheck-empty { flex-direction: row; align-items: center; }
 .impact-card-value span, .impact-card-sub { font-size: 13px; color: var(--muted-foreground); }
 .impact-card-sub { margin: 0; }
 .impact-card-meaning { margin: 4px 0 0; font-size: 14px; line-height: 1.45; color: var(--foreground); }
-/* Card colour families (cardPalette): warm = orange, hot = red, cold/cool = blue, green = exposed population.
+/* Card colour families (cardPalette), one per theme: water = blue, heat = orange, moisture = teal, population = purple.
    Value text uses the darkest shade of each family on its tint (≥ 7:1). */
-.impact-card.is-warm { border-color: #FDBA74; border-top: 4px solid #EA580C; background: #FFF7ED; }
-.impact-card.is-warm .impact-card-head, .impact-card.is-warm .impact-card-value strong { color: #9A3412; }
-.impact-card.is-hot { border-color: #FCA5A5; border-top: 4px solid #DC2626; background: #FEF2F2; }
-.impact-card.is-hot .impact-card-head, .impact-card.is-hot .impact-card-value strong { color: #991B1B; }
-.impact-card.is-cold { border-color: #93C5FD; border-top: 4px solid #1D4ED8; background: #EFF6FF; }
-.impact-card.is-cold .impact-card-head, .impact-card.is-cold .impact-card-value strong { color: #1E3A8A; }
-.impact-card.is-cool { border-color: #7DD3FC; border-top: 4px solid #0284C7; background: #F0F9FF; }
-.impact-card.is-cool .impact-card-head, .impact-card.is-cool .impact-card-value strong { color: #075985; }
-.impact-card.is-green { border-color: #86EFAC; border-top: 4px solid #16A34A; background: #F0FDF4; }
-.impact-card.is-green .impact-card-head, .impact-card.is-green .impact-card-value strong { color: #166534; }
+.impact-card.is-water { border-color: #93C5FD; border-top: 4px solid #1D4ED8; background: #EFF6FF; }
+.impact-card.is-water .impact-card-head, .impact-card.is-water .impact-card-value strong { color: #1E3A8A; }
+.impact-card.is-heat { border-color: #FDBA74; border-top: 4px solid #EA580C; background: #FFF7ED; }
+.impact-card.is-heat .impact-card-head, .impact-card.is-heat .impact-card-value strong { color: #7C2D12; }
+.impact-card.is-moisture { border-color: #5EEAD4; border-top: 4px solid #0D9488; background: #F0FDFA; }
+.impact-card.is-moisture .impact-card-head, .impact-card.is-moisture .impact-card-value strong { color: #115E59; }
+.impact-card.is-population { border-color: #C4B5FD; border-top: 4px solid #6D28D9; background: #F5F3FF; }
+.impact-card.is-population .impact-card-head, .impact-card.is-population .impact-card-value strong { color: #4C1D95; }
 .impact-card:not(.is-neutral) .impact-card-head h4 { color: inherit; }
 .impact-card:not(.is-neutral) .impact-card-panel { background: var(--card); }
 .impact-card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }

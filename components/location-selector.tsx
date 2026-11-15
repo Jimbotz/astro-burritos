@@ -43,6 +43,5 @@ export function LocationSelector({ value, onChange }: { value: Region; onChange:
       {sortedStates?.map((feature, index) => <option key={`${feature.properties.name}-${index}`} value={feature.properties.name}>{feature.properties.name}</option>)}
     </select><ChevronDown size={16} aria-hidden="true" /></div>
     <div className="coordinate-row"><span>{value.lat.toFixed(2)}° {value.lat >= 0 ? 'N' : 'S'}</span><span>{Math.abs(value.lon).toFixed(2)}° {value.lon >= 0 ? 'E' : 'W'}</span><span className="coordinate-source">WGS84</span></div>
-    <p className="field-hint">NASA POWER returns the 0.5° × 0.625° grid cell that contains this point, not an area average.</p>
   </div>
 }

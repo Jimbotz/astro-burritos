@@ -13,7 +13,7 @@ EarthScope finds long-term climate trends in NASA data for any place or region, 
    - the trend with its verdict (robust, probable, weak or no detectable trend) and the minimum trend these data could detect;
    - seasonal sub-series and the evidence file.
 3. **See it on the map.** The 2D map colors every native NASA POWER cell (0.5° × 0.625°) inside the state with the recent anomaly, the trend per decade or the average. Cells with a trend that is significant across the field are outlined.
-4. **Exploratory projection.** For four variables (T2M, TXx, TNn, precipitation), one straight line is fitted per cell. The animation runs through the data years and 10 years past them, colored by value or by change since the last data year. It is drawn only when the line beats the plain average on held-out years. It always comes with a 95 % prediction interval, its warnings and the label “exploratory, not a forecast”.
+4. **Exploratory projection.** For four variables (T2M, TXx, TNn, precipitation), one straight line is fitted per cell. The animation runs through the data years and 10 years past them, colored by value or by change since the last data year. It is drawn only when the line beats the plain average on held-out years. It always comes with a 95 % prediction interval and its warnings, and every year past the data is labelled as extrapolated.
 
 The demo examples (warming in Puebla, coldest nights in Tlaxcala, rain in Oaxaca) fill in a query in one click. The URL keeps the query, so a result can be shared as a link.
 

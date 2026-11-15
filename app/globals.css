@@ -319,6 +319,9 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .chart-line { stroke: var(--primary); stroke-width: 2; vector-effect: non-scaling-stroke; }
 .trend-line { stroke: var(--color-rocket-red); stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; } /* was neon-yellow: ~1.1:1 on white cards */
 .chart-dot { fill: var(--card); stroke: var(--primary); stroke-width: 1; vector-effect: non-scaling-stroke; }
+/* ChartDot: zero-length round-capped strokes stay round in the stretched 100 × 100 viewBox (circles became ellipses) */
+.chart-dot-ring { stroke: var(--primary); stroke-width: 7; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.chart-dot-core { stroke: var(--card); stroke-width: 4; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .chart-disclaimer { margin: 8px 0 0; text-align: center; font-size: 12px; line-height: 1.45; color: var(--muted-foreground); }
 .loading-icon { margin-bottom: 8px; color: var(--primary); animation: earthscope-spin 1.2s linear infinite; }
 @keyframes earthscope-spin { to { transform: rotate(360deg); } }
@@ -374,8 +377,16 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 
 /* Explorer cards */
 .explorer-panel { min-height: 240px; }
-.explorer-filters { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 16px 0 12px; }
+.explorer-filters { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 .signal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+/* Explorer: the selected variable's charts on the left, every variable's card on the right. The list is absolutely
+   placed so it adds no height: the row takes the charts' height and the cards scroll inside it. */
+.explorer-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr); gap: 24px; margin-top: 16px; }
+.explorer-main { min-width: 0; }
+.explorer-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.explorer-list { position: relative; flex: 1 1 auto; min-height: 320px; }
+.explorer-list > * { position: absolute; inset: 0; overflow-y: auto; margin: 0; padding: 4px; }
+.explorer-side .signal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; }
 .signal-card { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px 14px; text-align: left; border: 1px solid var(--border); border-radius: 12px; background: var(--card); transition: border-color .15s; }
 .signal-card:hover { border-color: var(--primary); }
 .signal-card.selected { border-color: var(--primary); background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-neon-blue) 10%, transparent); }
@@ -399,12 +410,15 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .verdict-not-detectable, .verdict-insufficient-data { border-color: var(--border); background: var(--card); color: var(--muted-foreground); }
 
 /* Variable detail */
-.variable-detail { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
+.variable-detail { min-width: 0; }
 .detail-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .detail-head h3 { margin: 0; font: 700 17px/1.25 var(--font-heading); }
 .detail-description { max-width: 560px; margin-top: 4px; font-size: 13px; line-height: 1.45; color: var(--muted-foreground); }
-.detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px; align-items: start; }
+.detail-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
 .detail-main, .detail-side { min-width: 0; }
+/* Stats in a horizontal row under the charts: headline card • metrics • robustness criteria */
+.detail-side { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px 20px; align-items: start; padding-top: 16px; border-top: 1px solid var(--border); }
+.detail-side .detail-headline { margin-bottom: 0; }
 .detail-block { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
 .detail-block h4, .criteria-title { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--foreground); }
 .detail-block h4 svg, .criteria-title svg { flex-shrink: 0; color: var(--primary); }
@@ -434,7 +448,8 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .series-axis-y span { position: absolute; right: 4px; transform: translateY(-50%); white-space: nowrap; }
 .series-axis-y span:first-child { top: 12%; }
 .series-axis-y span:last-child { top: 88%; }
-.series-axis-x { position: absolute; left: 52px; right: 0; bottom: 0; display: flex; justify-content: space-between; padding: 2px 3% 0; border-top: 1px solid var(--border); font: 12px var(--font-mono); color: var(--muted-foreground); }
+.series-axis-x { position: absolute; left: 52px; right: 0; bottom: 0; height: 20px; border-top: 1px solid var(--border); font: 12px var(--font-mono); color: var(--muted-foreground); }
+.series-axis-x span { position: absolute; top: 3px; transform: translateX(-50%); white-space: nowrap; } /* placed at each year's x */
 .chart-zero { stroke: var(--muted-foreground); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .chart-reference { stroke: var(--color-purple); stroke-width: 1; stroke-dasharray: 2 3; vector-effect: non-scaling-stroke; }
 .climatology-chart { position: relative; height: 120px; padding: 0 0 20px 52px; }
@@ -483,16 +498,19 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .projection-panel.is-muted .field-label { margin-bottom: 4px; }
 .projection-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .projection-head .field-label { flex-wrap: wrap; margin-bottom: 0; }
-.projection-head .signal-tag { letter-spacing: 0; text-transform: none; }
 .projection-actions { display: flex; align-items: center; gap: 8px; }
 .projection-actions .icon-button:disabled:hover { background: var(--secondary); }
-.projection-slider { margin-top: 12px; }
-.projection-range { width: 100%; height: 22px; margin: 0; padding: 0; appearance: none; -webkit-appearance: none; background: transparent; cursor: pointer; }
+.projection-slider { position: relative; margin-top: 12px; }
+.projection-range { width: 100%; height: 22px; margin: 0; padding: 0; appearance: none; -webkit-appearance: none; background: transparent; cursor: grab; }
+.projection-range:active { cursor: grabbing; }
 .projection-range:disabled { cursor: not-allowed; opacity: .45; }
 .projection-range::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, var(--primary) var(--split), color-mix(in srgb, var(--color-purple) 50%, var(--color-white)) var(--split)); }
-.projection-range::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6px; border-radius: 50%; background: var(--color-neon-yellow); border: 2px solid var(--color-deep-blue); box-sizing: border-box; }
+/* A 32 × 22 pill thumb carries the two-way arrows (.projection-thumb-icon) so it reads as draggable. */
+.projection-range::-webkit-slider-thumb { -webkit-appearance: none; width: 32px; height: 22px; margin-top: -8px; border-radius: 11px; background: var(--color-neon-yellow); border: 2px solid var(--color-deep-blue); box-sizing: border-box; }
 .projection-range::-moz-range-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, var(--primary) var(--split), color-mix(in srgb, var(--color-purple) 50%, var(--color-white)) var(--split)); }
-.projection-range::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--color-neon-yellow); border: 2px solid var(--color-deep-blue); box-sizing: border-box; }
+.projection-range::-moz-range-thumb { width: 32px; height: 22px; border-radius: 11px; background: var(--color-neon-yellow); border: 2px solid var(--color-deep-blue); box-sizing: border-box; }
+.projection-thumb-icon { position: absolute; top: 0; left: calc(var(--p) * (100% - 32px) + 16px); display: flex; align-items: center; height: 22px; transform: translateX(-50%); pointer-events: none; color: var(--color-deep-blue); }
+.projection-range:disabled + .projection-thumb-icon { opacity: .45; }
 .projection-range:focus-visible { outline-offset: 4px; border-radius: 6px; }
 .projection-scale { position: relative; height: 16px; margin-top: 2px; font: 500 12px/1 var(--font-mono); color: var(--muted-foreground); }
 .projection-scale span { position: absolute; top: 0; white-space: nowrap; }
@@ -505,13 +523,24 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .projection-phase.is-extrapolated { border-color: var(--color-purple); color: var(--color-purple); } /* purple on white 8.6:1 */
 .projection-mean { font-size: 13px; color: var(--muted-foreground); }
 .projection-mean b { font-family: var(--font-mono); color: var(--foreground); }
-.projection-blocked { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; font-size: 13px; line-height: 1.45; color: var(--foreground); }
-.projection-blocked svg { flex-shrink: 0; margin-top: 2px; color: var(--color-martian-red); }
-.projection-warnings { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
+/* Blocked projection: a red card that stands out (martian-red 9.4:1 on white, so it can be text). */
+.projection-blocked { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; padding: 12px 14px; border: 1px solid var(--color-martian-red); border-radius: 12px; background: color-mix(in srgb, var(--color-martian-red) 8%, var(--color-white)); font-size: 15px; line-height: 1.45; color: var(--foreground); }
+.projection-blocked strong { color: var(--color-martian-red); }
+.projection-blocked svg { flex-shrink: 0; margin-top: 3px; color: var(--color-martian-red); }
+/* Warnings as boxes, at most 3 per row (the max() keeps tracks at least a third of the row); details float from ⓘ */
+.projection-warnings { display: grid; grid-template-columns: repeat(auto-fit, minmax(max(160px, calc((100% - 16px) / 3)), 1fr)); gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
 .projection-warnings li { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); font-size: 13px; line-height: 1.45; color: var(--foreground); }
-.projection-warnings svg { flex-shrink: 0; margin-top: 2px; color: var(--color-deep-blue); fill: var(--color-neon-yellow); } /* same mark as the caveat cards */
-.projection-validation, .projection-note { margin-top: 8px; font-size: 12px; line-height: 1.45; color: var(--muted-foreground); }
-.projection-validation strong { font-family: var(--font-mono); color: var(--foreground); }
+.projection-warnings li > svg { flex-shrink: 0; margin-top: 2px; color: var(--color-deep-blue); fill: var(--color-neon-yellow); } /* the ⚠ only: same mark as the caveat cards (the ⓘ keeps its own style) */
+.projection-summary { margin-top: 12px; font-size: 17px; line-height: 1.4; color: var(--foreground); }
+.projection-summary strong { font: 700 21px/1.2 var(--font-mono); }
+.projection-summary.is-short strong { color: var(--color-martian-red); }
+/* "How it was tested": the numbers behind the summary, folded behind an info icon (native <details>). */
+.info-details { margin-top: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); }
+.info-details summary { display: flex; align-items: center; gap: 6px; padding: 8px 10px; cursor: pointer; list-style: none; font-size: 13px; font-weight: 600; color: var(--primary); }
+.info-details summary::-webkit-details-marker { display: none; }
+.info-details p { margin: 0; padding: 0 10px 10px; font-size: 13px; line-height: 1.45; color: var(--muted-foreground); }
+.info-details p svg { display: inline-block; margin-right: 4px; vertical-align: -3px; color: var(--color-deep-blue); fill: var(--color-neon-yellow); } /* Tailwind preflight makes svg block */
+.info-details strong { font-family: var(--font-mono); color: var(--foreground); }
 .layer-summary { margin-top: 8px; font-size: 13px; line-height: 1.45; color: var(--muted-foreground); }
 .legend-swatch-outline { display: inline-block; width: 12px; height: 12px; vertical-align: -1px; border: 2px solid var(--color-deep-blue); border-radius: 2px; }
 /* Projection hatch: cells whose trend is not significant across the field (direction not told apart from noise) */
@@ -558,6 +587,11 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .term-tip { position: absolute; left: 0; bottom: calc(100% + 8px); z-index: 30; width: max-content; max-width: min(280px, 80vw); padding: 8px 10px; border-radius: 8px; background: var(--color-deep-blue); color: var(--color-white); font: 400 13px/1.45 var(--font-body); letter-spacing: 0; text-transform: none; text-align: left; white-space: normal; box-shadow: 0 4px 12px color-mix(in srgb, var(--color-deep-blue) 25%, transparent); display: none; pointer-events: none; }
 /* display, not visibility: a hidden tip near the right edge would still widen the page and add a horizontal scrollbar */
 .term:hover .term-tip, .term:focus .term-tip { display: block; }
+/* ⓘ button with a floating tip (InfoTip); the tip opens leftwards from the icon so it never leaves the card's side */
+.info-tip { position: relative; display: inline-flex; flex: none; margin-left: auto; }
+.info-tip-button { display: inline-flex; padding: 2px; border: 0; border-radius: 50%; background: none; color: var(--primary); cursor: help; }
+.info-tip-text { left: auto; right: 0; }
+.info-tip:hover .term-tip, .info-tip:focus-within .term-tip { display: block; }
 
 /* Step 1 demo examples: one click fills the query and runs it */
 .demo-examples { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--muted-foreground); }
@@ -613,6 +647,11 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 @media (max-width: 980px) {
   /* Globe above the 2D map */
   .maps-row, .results-row { grid-template-columns: minmax(0, 1fr); }
+  /* Explorer stacks: the variable cards (scrolling in a fixed box) above the selected variable's charts */
+  .explorer-layout { grid-template-columns: minmax(0, 1fr); }
+  .explorer-side { order: -1; }
+  .explorer-list { min-height: 0; }
+  .explorer-list > * { position: static; max-height: 420px; }
 }
 @media (max-width: 760px) {
   :root { --gutter: 14px; }

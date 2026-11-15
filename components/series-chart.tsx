@@ -1,5 +1,20 @@
 import { formatNumber } from '@/lib/ui/format'
 
+/**
+ * A point that stays round in a stretched viewBox: two zero-length, round-capped, non-scaling strokes (ring and core).
+ * An SVG circle would turn into an ellipse under preserveAspectRatio="none".
+ */
+export function ChartDot({ x, y, title }: { x: number; y: number; title: string }) {
+  return <g><title>{title}</title><line x1={x} y1={y} x2={x} y2={y} className="chart-dot-ring" /><line x1={x} y1={y} x2={x} y2={y} className="chart-dot-core" /></g>
+}
+
+/** First and last year plus every fifth year between them, skipping any within 2 years of an end so labels never touch. */
+export function yearTicks(first: number, last: number) {
+  const middle: number[] = []
+  for (let year = Math.ceil((first + 1) / 5) * 5; year < last; year += 5) if (year - first > 2 && last - year > 2) middle.push(year)
+  return first === last ? [first] : [first, ...middle, last]
+}
+
 export type SeriesPoint = { year: number; value: number | null }
 export type SeriesLine = { start: { year: number; value: number }; end: { year: number; value: number } }
 
@@ -49,8 +64,8 @@ export function SeriesChart({ points, line, reference, zeroLine = false, unit, d
       {reference !== null && reference !== undefined && <line x1="0" y1={y(reference)} x2="100" y2={y(reference)} className="chart-reference" />}
       {runs.map((segment) => segment.length > 1 && <polyline key={segment[0].year} points={segment.map((point) => `${x(point.year)},${y(point.value)}`).join(' ')} fill="none" className="chart-line" strokeLinecap="round" strokeLinejoin="round" />)}
       {line && <line x1={x(line.start.year)} y1={y(line.start.value)} x2={x(line.end.year)} y2={y(line.end.value)} className="trend-line" />}
-      {valid.map((point) => <circle key={point.year} cx={x(point.year)} cy={y(point.value)} r="1.15" className="chart-dot"><title>{point.year}: {formatNumber(point.value, digits)} {unit}</title></circle>)}
+      {valid.map((point) => <ChartDot key={point.year} x={x(point.year)} y={y(point.value)} title={`${point.year}: ${formatNumber(point.value, digits)} ${unit}`} />)}
     </svg>
-    <div className="series-axis-x" aria-hidden="true"><span>{firstYear}</span><span>{Math.round((firstYear + lastYear) / 2)}</span><span>{lastYear}</span></div>
+    <div className="series-axis-x" aria-hidden="true">{yearTicks(firstYear, lastYear).map((year) => <span key={year} style={{ left: `${x(year)}%` }}>{year}</span>)}</div>
   </div>
 }

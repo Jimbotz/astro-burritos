@@ -77,6 +77,21 @@ export function estimateCells(bbox: BBox) {
   return Math.max(0, rows) * Math.max(0, cols)
 }
 
+/**
+ * MERRA-2 cell centres inside the polygon itself (the map's size guard). A long diagonal state has a box far larger
+ * than its grid: Inner Mongolia's box holds 1,551 centres, the state about 500.
+ * ponytail: centres only, so cells that merely touch the edge are not counted (the API keeps those too); fine for a guard.
+ */
+export function countCellsInside(geometry: PolygonGeometry, bbox: BBox) {
+  let count = 0
+  for (let lat = Math.ceil(bbox.minLat / CELL.dLat) * CELL.dLat; lat <= bbox.maxLat; lat += CELL.dLat) {
+    for (let lon = Math.ceil(bbox.minLon / CELL.dLon) * CELL.dLon; lon <= bbox.maxLon; lon += CELL.dLon) {
+      if (containsPoint(geometry, lon, lat)) count += 1
+    }
+  }
+  return count
+}
+
 export type CellResult = {
   id: string
   lat: number

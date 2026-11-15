@@ -80,6 +80,7 @@ export function VariableDetail({ result, startYear, endYear }: { result: Variabl
           unit={anomalies ? anomalyUnit : unit}
           digits={anomalies ? slopeDigits : valueDigits}
           label={`${result.label.en}, ${anomalies ? 'anomalies' : 'annual values'} ${startYear}–${endYear}`}
+          height={170}
         />
         <p className="chart-disclaimer">
           Dashed line: {display.method === 'sen-mann-kendall' ? 'Sen' : 'OLS'} trend over the complete years.
@@ -116,13 +117,16 @@ export function VariableDetail({ result, startYear, endYear }: { result: Variabl
           <span className="signal-ci">{display.ci95 ? `95% CI ${formatSigned(display.ci95[0], slopeDigits)} to ${formatSigned(display.ci95[1], slopeDigits)}` : 'Interval not estimable'}</span>
           <VerdictBadge verdict={trend.verdict} />
         </div>
+        <div className="detail-metrics">
         <div className="metric-row"><span><Term name="hamedRao">Hamed–Rao p-value</Term></span><strong>{formatPValue(trend.pValueHamedRao)}</strong></div>
         <div className="metric-row"><span><Term name="qValue">q-value (13 variables)</Term></span><strong>{formatPValue(trend.qValue)}</strong></div>
         <div className="metric-row"><span><Term name="minimumDetectable">Smallest detectable trend</Term></span><strong>{formatNumber(trend.minimumDetectablePerDecade, nativeDigits)} {unitEn(result.trendUnit)}</strong></div>
         <div className="metric-row"><span><Term name="relevance">Relevance threshold</Term></span><strong>{profile.relevanceThreshold} {unitEn(profile.displayUnit)}</strong></div>
         <div className="metric-row"><span>Complete years</span><strong>{trend.nYears}</strong></div>
         {trend.sensitivity && <div className="metric-row"><span><Term name="sensitivity">Sensitivity {trend.sensitivity.startYear}–{trend.sensitivity.endYear}</Term></span><strong>{formatSigned(trend.sensitivity.slopePerDecade, nativeDigits)} {unitEn(result.trendUnit)}</strong></div>}
+        </div>
 
+        <div className="detail-criteria">
         <h4 className="criteria-title"><ListChecks size={16} /> <Term name="robustness">Robustness criteria</Term> • {trend.criteriaMet}/5</h4>
         {trend.criteria ? <ul className="criteria-list">
           {CRITERIA.map((criterion) => {
@@ -130,6 +134,7 @@ export function VariableDetail({ result, startYear, endYear }: { result: Variabl
             return <li key={criterion.key} className={met ? 'met' : 'unmet'}>{met ? <Check size={16} aria-label="Met" /> : <X size={16} aria-label="Not met" />}<span>{criterion.label}</span></li>
           })}
         </ul> : <p className="evidence-muted">Criteria need at least 10 complete years.</p>}
+        </div>
       </aside>
     </div>
 

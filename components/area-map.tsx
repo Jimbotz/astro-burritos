@@ -9,7 +9,7 @@ import { ProjectionPanel } from '@/components/map-projection'
 import { useRegionLayer } from '@/hooks/use-earthscope'
 import { useReducedMotion } from '@/hooks/use-browser'
 import type { VariableId } from '@/lib/api/v2'
-import { estimateCells, expandForCells, geometryBBox, type PolygonGeometry } from '@/lib/analysis/region'
+import { countCellsInside, expandForCells, geometryBBox, type PolygonGeometry } from '@/lib/analysis/region'
 import { tilesFor } from '@/lib/nasa/power'
 import { fitProjection, niceKm, useCountries, useStates } from '@/lib/geo'
 import type { ProjectionMode } from '@/lib/ui/projection-view'
@@ -19,7 +19,7 @@ const HEIGHT = 320
 // Projection animation: one year per tick, a longer hold on the last year before it loops back to the first.
 const YEAR_MS = 500
 const END_HOLD_MS = 1600
-// Grid size guard for the map: above this many cells (in the box the server fetches) the user is asked for a state.
+// Grid size guard for the map: above this many cells inside the state the user is asked for a smaller one.
 // The API itself accepts up to 2,500. Measured 2026-11-14: about 2.5 s per uncached 5° POWER block (Mexico: 35 blocks, 87 s).
 export const MAP_MAX_CELLS = 800
 const SECONDS_PER_TILE = 2.5
@@ -33,7 +33,7 @@ const hemisphere = (value: number, positive: string, negative: string) => `${Mat
  * Outline and map-grid size for a region, shared by the step 3 map and the step 1 wait card (SWR dedupes the geo
  * requests). The grid is for states only: a whole country mixes very different climates and multiplies the POWER
  * blocks, so a country alone draws its outline and asks for a state (`needsState`); its point analysis still runs.
- * The size and time are worst case: cells and aligned 5° POWER blocks in the box the server fetches.
+ * Cells are counted inside the state; the time is worst case, from the aligned 5° POWER blocks of the box the server fetches.
  */
 export function useGridArea(region: Region) {
   const countries = useCountries().data?.features
@@ -42,9 +42,10 @@ export function useGridArea(region: Region) {
   const state = region.state ? states?.find((feature) => feature.properties.name === region.state) : undefined
   const estimate = useMemo(() => {
     if (!state) return null
-    const box = expandForCells(geometryBBox(state.geometry as unknown as PolygonGeometry))
+    const geometry = state.geometry as unknown as PolygonGeometry
+    const box = expandForCells(geometryBBox(geometry))
     const tiles = tilesFor(box).length
-    return { cells: estimateCells(box), tiles, seconds: Math.max(3, Math.round(tiles * SECONDS_PER_TILE)) }
+    return { cells: countCellsInside(geometry, box), tiles, seconds: Math.max(3, Math.round(tiles * SECONDS_PER_TILE)) }
   }, [state])
   return {
     countries, states, country, state,

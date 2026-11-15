@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { analyzeCells, cellsToGeoJSON, containsPoint, coverageFraction, estimateCells, expandForCells, geometryBBox, isPolygonGeometry, regionalAnnual, type PolygonGeometry, type Position } from '../../lib/analysis/region'
+import { analyzeCells, cellsToGeoJSON, containsPoint, countCellsInside, coverageFraction, estimateCells, expandForCells, geometryBBox, isPolygonGeometry, regionalAnnual, type PolygonGeometry, type Position } from '../../lib/analysis/region'
 import { tilesFor } from '../../lib/nasa/power'
 import type { SeriesMap } from '../../lib/analysis/annual-rules'
 import { getVariable } from '../../lib/variables/catalog'
@@ -52,6 +52,17 @@ describe('grid and tiles', () => {
   it('estimates cells and expands a bbox by half a cell', () => {
     expect(estimateCells({ minLat: 17.75, maxLat: 20.75, minLon: -99.25, maxLon: -96.75 })).toBe(24)
     expect(expandForCells({ minLat: 19, maxLat: 20, minLon: -98, maxLon: -97 })).toEqual({ minLat: 18.75, maxLat: 20.25, minLon: -98.3125, maxLon: -96.6875 })
+  })
+
+  it('counts only the cell centres inside the polygon, not its whole box', () => {
+    const box = { minLat: 0, maxLat: 5, minLon: 0, maxLon: 5 }
+    // A square just around the box holds every centre of the box.
+    expect(countCellsInside(square(-0.1, -0.1, 5.1, 5.1), box)).toBe(estimateCells(box))
+    // A diagonal triangle over the same box holds about half of them (a long diagonal state's case).
+    const triangle: PolygonGeometry = { type: 'Polygon', coordinates: [[[-0.1, -0.1], [5.1, -0.1], [-0.1, 5.1], [-0.1, -0.1]]] }
+    const inside = countCellsInside(triangle, box)
+    expect(inside).toBeGreaterThan(estimateCells(box) * 0.4)
+    expect(inside).toBeLessThan(estimateCells(box) * 0.65)
   })
 })
 

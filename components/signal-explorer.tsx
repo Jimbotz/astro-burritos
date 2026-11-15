@@ -47,18 +47,23 @@ export function SignalExplorer({ point, isLoading, error, analysisRequested, foc
     {isLoading ? <div className="chart-empty" role="status" aria-live="polite"><LoaderCircle className="loading-icon" size={24} /><strong>Processing 13 variables from NASA POWER…</strong><p>Monthly and daily records are cleaned, aggregated and tested on the server.</p></div>
       : error ? <div className="chart-empty" role="status"><div className="chart-empty-icon">!</div><strong>Signal processing failed</strong><p>{error.message}</p><button className="export-button retry-button" type="button" onClick={onRetry}>Retry request</button></div>
       : !point ? <div className="chart-empty" role="status"><div className="chart-empty-icon"><LayoutGrid size={16} /></div><strong>{analysisRequested ? 'No signals returned' : 'Every climate signal will appear here'}</strong><p>Analyze a place to compare temperature, extremes, rain, humidity and soil moisture with the same evidence rules.</p></div>
-      : <>
-        <div className="explorer-filters">
-          <div className="segmented" role="group" aria-label="Variable group">
-            {GROUPS.map((option) => <button key={option.id} type="button" aria-pressed={group === option.id} onClick={() => setGroup(option.id)}>{option.label}</button>)}
+      : <div className="explorer-layout">
+        {/* The selected variable's charts on the left; every variable's card on the right, scrolling within their height. */}
+        <div className="explorer-main">{selected && <VariableDetail key={selected.id} result={selected} startYear={startYear} endYear={endYear} />}</div>
+        <aside className="explorer-side" aria-label="Processed variables">
+          <div className="explorer-filters">
+            <div className="segmented" role="group" aria-label="Variable group">
+              {GROUPS.map((option) => <button key={option.id} type="button" aria-pressed={group === option.id} onClick={() => setGroup(option.id)}>{option.label}</button>)}
+            </div>
+            <label className="toggle"><input type="checkbox" checked={headlineOnly} onChange={(event) => setHeadlineOnly(event.target.checked)} /> Headline variables only</label>
           </div>
-          <label className="toggle"><input type="checkbox" checked={headlineOnly} onChange={(event) => setHeadlineOnly(event.target.checked)} /> Headline variables only</label>
-        </div>
-        {visible.length ? <div className="signal-grid">
-          {visible.map((result) => <SignalCard key={result.id} result={result} selected={result.id === selected?.id} onSelect={() => onFocus(result.id)} />)}
-        </div> : <p className="evidence-muted">No variable matches these filters.</p>}
-        <p className="chart-disclaimer">Changes are per decade in each variable’s own scale. Arrows appear only for robust or probable trends of variables that allow trend claims; precipitation is shown without claims.</p>
-        {selected && <VariableDetail key={selected.id} result={selected} startYear={startYear} endYear={endYear} />}
-      </>}
+          <div className="explorer-list">
+            {visible.length ? <div className="signal-grid">
+              {visible.map((result) => <SignalCard key={result.id} result={result} selected={result.id === selected?.id} onSelect={() => onFocus(result.id)} />)}
+            </div> : <p className="evidence-muted">No variable matches these filters.</p>}
+          </div>
+          <p className="chart-disclaimer">Changes are per decade in each variable’s own scale. Arrows appear only for robust or probable trends of variables that allow trend claims; precipitation is shown without claims.</p>
+        </aside>
+      </div>}
   </section>
 }

@@ -156,7 +156,6 @@ export function MapLayerControls({ variable, kind, onKind }: { variable: Variabl
         {KINDS.map((option) => <button key={option.id} type="button" title={option.hint} aria-pressed={shownKind === option.id} disabled={option.id === 'trend' && !trendAllowed} onClick={() => onKind(option.id)}>{option.label}</button>)}
       </div>
     </div>
-    <p className="field-hint">{descriptor ? <>Colors the map with <strong>{descriptor.label.en}</strong> for the selected country or state after Analyze.</> : 'This variable has no map layer.'}</p>
     {descriptor && !trendAllowed && <p className="field-hint">Precipitation has no trend layer: its trend sign depends on the start year, so the map shows anomalies or averages only.</p>}
   </div>
 }

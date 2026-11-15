@@ -1,5 +1,6 @@
 import type { ClimatologyPoint } from '@/lib/api/v2'
 import { formatNumber, MONTH_INITIALS } from '@/lib/ui/format'
+import { ChartDot } from '@/components/series-chart'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
@@ -22,7 +23,7 @@ export function ClimatologyChart({ points, unit, digits, bars, label }: { points
         ? valid.map((point) => <rect key={point.month} x={x(point.month) - slot * 0.32} y={y(point.value)} width={slot * 0.64} height={90 - y(point.value)} className="climatology-bar"><title>{MONTH_NAMES[point.month - 1]}: {formatNumber(point.value, digits)} {unit}</title></rect>)
         : <>
           <polyline points={valid.map((point) => `${x(point.month)},${y(point.value)}`).join(' ')} fill="none" className="chart-line" strokeLinecap="round" strokeLinejoin="round" />
-          {valid.map((point) => <circle key={point.month} cx={x(point.month)} cy={y(point.value)} r="1.4" className="chart-dot"><title>{MONTH_NAMES[point.month - 1]}: {formatNumber(point.value, digits)} {unit}</title></circle>)}
+          {valid.map((point) => <ChartDot key={point.month} x={x(point.month)} y={y(point.value)} title={`${MONTH_NAMES[point.month - 1]}: ${formatNumber(point.value, digits)} ${unit}`} />)}
         </>}
     </svg>
     <div className="climatology-months" aria-hidden="true">{MONTH_INITIALS.map((initial, index) => <span key={index}>{initial}</span>)}</div>

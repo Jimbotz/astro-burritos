@@ -41,7 +41,8 @@ export function AppShell() {
   const [layerKind, setLayerKind] = useState<LayerKind>('anomaly')
   const [startYear, setStartYear] = useState(2001)
   const [endYear, setEndYear] = useState(2024)
-  const [analysisRequested, setAnalysisRequested] = useState(false)
+  // The first visit opens on the Puebla case already analyzed (a shared link replaces it with its own query).
+  const [analysisRequested, setAnalysisRequested] = useState(true)
   // The globe starts still under reduced motion, until the user presses play or pause.
   const reducedMotion = useReducedMotion()
   const [pausedChoice, setPaused] = useState<boolean | null>(null)
@@ -96,7 +97,8 @@ export function AppShell() {
   }
 
   // Results stay blurred until Analyze and pulse while the point request runs. Errors show sharp, with their retry.
-  const resultsState = !analysisRequested ? 'idle' : point.isLoading ? 'loading' : 'ready'
+  // "loading" until data or an error arrives, so the prerendered page (no data yet) also starts blurred.
+  const resultsState = !analysisRequested ? 'idle' : point.data || point.error ? 'ready' : 'loading'
   // Wait card next to Analyze: worst-case time of the state's map grid, or why only the point runs.
   const grid = useGridArea(region)
   const waitText = gridWaitText({ hasCountry: Boolean(region.country), needsState: grid.needsState, estimate: grid.estimate, tooLarge: grid.tooLarge, areaName: grid.title })

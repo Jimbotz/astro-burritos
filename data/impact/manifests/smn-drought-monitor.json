@@ -1,0 +1,17 @@
+{
+ "sourceId": "smn-drought-monitor",
+ "provider": "CONAGUA / SMN",
+ "product": "Monitor de Sequía de México, municipios con sequía (MunicipiosSequia.xlsx)",
+ "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Monitor%20de%20Sequia%20en%20Mexico/MunicipiosSequia.xlsx",
+ "retrievedAt": "2026-11-15T18:47:29Z",
+ "coverage": {
+  "start": "2003-01-31",
+  "end": null
+ },
+ "resolution": "municipality",
+ "timeStandard": null,
+ "authRequired": false,
+ "accessMode": "bundled-snapshot",
+ "license": "Datos abiertos del Gobierno de México",
+ "checksum": "7f38e7a5bb7371de1b5449bc30f249fff534821eb594a777dbfcfcf91b7a274a"
+}

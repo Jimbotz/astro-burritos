@@ -17,6 +17,8 @@ export const RATE_LIMITS = {
   region: { limit: 12, windowMs: 60_000 },
   point: { limit: 30, windowMs: 60_000 },
   crosscheck: { limit: 20, windowMs: 60_000 },
+  /** Impact lenses: two POWER daily requests of 12 parameters since 1991 each. */
+  impact: { limit: 10, windowMs: 60_000 },
 } as const satisfies Record<string, RateLimitRule>
 
 const MAX_TRACKED_CLIENTS = 10_000

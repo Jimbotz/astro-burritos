@@ -4,3 +4,4 @@ node_modules
 .env*
 *.tsbuildinfo
 video
+data/impact/raw

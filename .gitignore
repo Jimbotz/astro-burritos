@@ -30,3 +30,6 @@ next-env.d.ts
 # agent instructions (local only)
 CLAUDE.md
 AGENTS.md
+
+# impact lenses: raw public downloads (large; URL, date and SHA-256 are kept in data/impact/manifests/)
+data/impact/raw/

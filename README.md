@@ -43,7 +43,12 @@ Each of these is one click: the **Try an example** buttons, or the links in the 
 4. **Cross-check the signal.** Two cards test whether the result holds up:
    - **Two NASA rain records.** MERRA-2 against GPM IMERG for the same cell, both from the NASA POWER API. The card asks three questions: same amount, same wet and dry years, same trend. Its verdict is **Agree**, **Disagree** or **Inconclusive**, with the reasons to trust it or not.
    - **Two places, same rules.** The same variable, period and tests at a second place (Puebla vs. Tehuacán by default). Is the signal local or shared?
-5. **Exploratory projection.** For four variables (T2M, TXx, TNn, precipitation), one straight line is fitted per cell and animated 10 years past the data.
+5. **Impact lenses.** Two planning lenses on top of the climate result (`GET /api/impact`):
+   - **Water Signal** (municipal water management): precipitation, FAO-56 reference evapotranspiration (ET0), the climate water balance, root-zone wetness and the CONAGUA Drought Monitor, validated against SMN stations.
+   - **Heat Signal** (heat exposure): warm days and nights (TX90p, TN90p) corroborated by the annual extremes (TXx, TNn), kept separate from INEGI 2020 population exposure.
+
+   Each lens returns one of five states (insufficient data, no detectable signal, watch, planning signal, corroborated signal), the components behind it, a suggested planning action that is never a command, indicator cards, thematic maps for Puebla, Tlaxcala and Oaxaca, its sources and what it cannot conclude. See [`docs/backend/impact-lenses.md`](docs/backend/impact-lenses.md).
+6. **Exploratory projection.** For four variables (T2M, TXx, TNn, precipitation), one straight line is fitted per cell and animated 10 years past the data.
    - It is drawn only when the line beats the plain average on held-out years.
    - It always shows a 95% prediction interval and its warnings, and every year past the data is labelled as extrapolated.
 
@@ -79,12 +84,15 @@ Every source the app uses is public and needs no login or key.
 |---|---|---|
 | **Live now** | [NASA POWER](https://power.larc.nasa.gov/) API v2.10: MERRA-2 (monthly, daily and regional) | Every variable, the map grid and the projection |
 | **Live now** | GPM IMERG monthly precipitation, through the same NASA POWER API (`IMERG_PRECTOT`, 0.1°, 1998 onward) | The second rain record of the cross-check card |
+| **Live now** (water lens) | CONAGUA/SMN daily station records (45 stations) and the municipal Mexican Drought Monitor, as bundled public snapshots | Validation of POWER rain; observed drought per municipality |
+| **Live now** (heat lens) | INEGI Censo 2020 (ITER, 189,432 localities) and Marco Geoestadístico 2020, as bundled public snapshots | Exposed population, urban share and municipal outlines |
+| **Method** | FAO-56 Penman–Monteith | Reference evapotranspiration (ET0) of the water lens |
 | **Validation** | NOAA GHCN-Daily stations (Puebla airport, Tlaxcala), public NCEI files | Offline check: maximum temperature agrees; rain barely does |
 | **Planned** | MODIS/VIIRS vegetation and land-surface temperature through the ORNL DAAC subset service (no login) | Vegetation and urban-heat trends |
 | **Planned** | KNMI Climate Explorer (anonymous use) | A manual audit of one result against a named reference dataset |
 | **Not used** | Giovanni, AppEEARS, Hydrology Time Series | They need a NASA Earthdata login. The same products are reached through open routes: IMERG through POWER, MODIS through ORNL |
 
-Boundaries come from Natural Earth (public domain). The full source review is in [`docs/roadmap/data-strategy.md`](docs/roadmap/data-strategy.md) and [`docs/science/dataset-provenance.md`](docs/science/dataset-provenance.md).
+Boundaries come from Natural Earth (public domain). Every bundled file records its URL, download date and SHA-256 ([`docs/backend/data-sources-no-auth.md`](docs/backend/data-sources-no-auth.md)). The full source review is in [`docs/roadmap/data-strategy.md`](docs/roadmap/data-strategy.md) and [`docs/science/dataset-provenance.md`](docs/science/dataset-provenance.md).
 
 ## Quick start
 
@@ -121,6 +129,7 @@ The container needs internet access, because data is requested live from NASA PO
 | `GET /api/variables` | Catalog: 13 variables, processing profiles, rules, verdict labels |
 | `GET /api/point?latitude=19.04&longitude=-98.2&startYear=2001&endYear=2024` | All variables for one native cell (one monthly and one daily POWER request) |
 | `GET /api/crosscheck?latitude=19.40&longitude=-98.16&startYear=2001&endYear=2024` | MERRA-2 vs. GPM IMERG rain for one cell: level, year-to-year agreement, trend agreement and reasons |
+| `GET /api/impact?lens=water&country=MEX&state=Puebla` · `?lens=heat&municipalityCode=21156` · `POST /api/impact` | Impact lenses: decision support, indicators, map layers, sources and limits |
 | `GET /api/region?variable=T2M&country=MEX&state=Puebla` | Map grid for a state or country by id. The CDN caches it for 24 h |
 | `GET /api/region?variable=T2M&minLat=…&maxLat=…&minLon=…&maxLon=…` | Map grid for a bounding box |
 | `POST /api/region` | Map grid for any GeoJSON polygon |
@@ -146,12 +155,14 @@ The audit evaluated 17 more variables and excluded them. Examples are product ch
 ```text
 app/                 Next.js App Router: one page, API routes, error and not-found pages
 components/          Client UI (globe, 2D map, projection panel, cross-check cards, evidence file)
-lib/analysis/        Statistics: annual rules, robust trends, region/field FDR, projection, concordance, IMERG footprint
+lib/analysis/        Statistics: annual rules, robust trends, region/field FDR, projection, concordance, IMERG footprint, FAO-56 ET0, water and heat lenses
 lib/api/             API v2 contract, validation, services, area lookup, rate limit
 lib/nasa/            NASA POWER client (MERRA-2 point, daily, regional tiles; IMERG box; retries; cancellation)
+lib/data/            Bundled CONAGUA/SMN and INEGI data, municipal geometry and source manifests (impact lenses)
 lib/variables/       Variable catalog, the single source of truth
+data/impact/         Impact-lens manifests, processed public subsets and test fixtures (raw downloads are git-ignored)
 docs/                API guide, audit, methodology, validation protocol, threshold sensitivity, demo script
-scripts/             Geo build and check, threshold sensitivity
+scripts/             Geo build and check, threshold sensitivity, impact-lens ingestion (scripts/impact/)
 tests/               Vitest suites and saved NASA POWER fixtures
 ```
 

@@ -1,0 +1,8 @@
+{
+  "note": "Real NASA POWER responses saved for the offline tests of /api/impact (the two daily requests the service sends for the Puebla analysis point). Regenerate only on purpose: the tests assert the published results.",
+  "retrievedAt": "2026-11-15",
+  "requests": [
+    { "file": "power-daily-puebla-a.json.gz", "url": "https://power.larc.nasa.gov/api/temporal/daily/point?parameters=T2M_MAX%2CT2M_MIN%2CT2MDEW%2CWS10M%2CPS%2CT2M&community=AG&longitude=-98.2&latitude=19.04&start=19910101&end=20241231&format=JSON&time-standard=LST" },
+    { "file": "power-daily-puebla-b.json.gz", "url": "https://power.larc.nasa.gov/api/temporal/daily/point?parameters=ALLSKY_SFC_SW_DWN%2CALLSKY_SFC_SW_UP%2CALLSKY_SFC_LW_DWN%2CALLSKY_SFC_LW_UP%2CPRECTOTCORR%2CGWETROOT&community=AG&longitude=-98.2&latitude=19.04&start=19910101&end=20241231&format=JSON&time-standard=LST" }
+  ]
+}

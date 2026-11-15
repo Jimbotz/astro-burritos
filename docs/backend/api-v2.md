@@ -7,6 +7,7 @@ Corte: 2026-11-14. Rama `Guillermo`. Esta API procesa en el servidor todas las v
 | `GET /api/variables` | Catálogo: nombres (es/en), unidades, grupo, clase, disponibilidad, reglas y textos de veredicto | Construir selectores, leyendas y filtros sin escribir nada a mano |
 | `GET /api/point` | Todas las variables de una ubicación (celda POWER): series anuales y mensuales, climatología y evaluación de tendencia | Gráficas y panel de evidencia |
 | `GET /api/region?country=…&state=…` (o `POST` con polígono, o `GET` con caja) | Cuadrícula de celdas de una variable recortada a un estado o país, con tendencia por celda y serie regional | Mapa y gráfica regional |
+| `GET|POST /api/impact` | Lentes de impacto (agua y calor): estado de decisión, indicadores, capas de mapa, fuentes y límites. Ver [`impact-lenses.md`](impact-lenses.md) | Sección “Impact lenses” |
 | `GET /api/crosscheck` | Lluvia de una celda según dos registros de NASA (MERRA-2 y GPM IMERG, ambos vía POWER): nivel, años húmedos y secos, concordancia de tendencia y razones (sección 7) | Tarjeta “Two NASA rain records” |
 
 Tipos TypeScript listos para importar: `lib/api/v2.ts` (`PointResponse`, `RegionResponse`, `CrosscheckResponse`, `VariablesResponse`) y `lib/variables/catalog.ts` (`VariableDescriptor`, `VARIABLES`). Ejemplos reales de cada respuesta: `docs/backend/samples/`.

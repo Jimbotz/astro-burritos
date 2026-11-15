@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import type { CrosscheckResponse, PointResponse, RegionResponse, VariableId } from '@/lib/api/v2'
+import type { ImpactLens, ImpactResponse } from '@/lib/api/impact-types'
 
 // Client hooks for API v2: SWR, no refetch on focus,
 // and the server's `error` message surfaced as-is so the panels can show it.
@@ -25,6 +26,18 @@ export function usePointAnalysis(request: PointRequest | null) {
 export function useCrosscheck(request: PointRequest | null) {
   const key = request ? `/api/crosscheck?${new URLSearchParams({ latitude: String(request.latitude), longitude: String(request.longitude), startYear: String(request.startYear), endYear: String(request.endYear) })}` : null
   return useSWR<CrosscheckResponse, Error>(key, async (url: string) => readJson<CrosscheckResponse>(await fetch(url)), { revalidateOnFocus: false })
+}
+
+export type ImpactRequestUi = { lens: ImpactLens; country?: string; state?: string; latitude: number; longitude: number; startYear: number; endYear: number }
+
+/** GET /api/impact for one lens at the analysis point (with its country and state when known). Pass null to skip. */
+export const impactUrl = (request: ImpactRequestUi) => `/api/impact?${new URLSearchParams({
+  lens: request.lens, ...(request.country ? { country: request.country } : {}), ...(request.state ? { state: request.state } : {}),
+  latitude: String(request.latitude), longitude: String(request.longitude), startYear: String(request.startYear), endYear: String(request.endYear),
+})}`
+
+export function useImpact(request: ImpactRequestUi | null) {
+  return useSWR<ImpactResponse, Error>(request ? impactUrl(request) : null, async (url: string) => readJson<ImpactResponse>(await fetch(url)), { revalidateOnFocus: false, shouldRetryOnError: false })
 }
 
 /** A map area by its Natural Earth id: ADM0_A3 country code and, for a state, its exact name. */

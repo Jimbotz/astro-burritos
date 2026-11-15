@@ -1,0 +1,15 @@
+{
+ "sourceId": "open-meteo",
+ "provider": "Open-Meteo",
+ "product": "Historical Weather API (ERA5 / ERA5-Land)",
+ "url": "https://open-meteo.com/en/docs/historical-weather-api",
+ "retrievedAt": null,
+ "coverage": null,
+ "resolution": "reanalysis grid",
+ "timeStandard": null,
+ "authRequired": false,
+ "accessMode": "public-api",
+ "license": "CC BY 4.0, non-commercial use without a key",
+ "checksum": null,
+ "status": "optional, not used by the runtime"
+}

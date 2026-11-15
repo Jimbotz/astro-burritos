@@ -17,6 +17,7 @@ import { DataSourceBadge } from '@/components/data-source-badge'
 import { SignalExplorer } from '@/components/signal-explorer'
 import { SignalHighlights } from '@/components/signal-highlights'
 import { PlaceComparison, RainCrosscheck } from '@/components/cross-check'
+import { ImpactLenses } from '@/components/impact-overview'
 import { useCrosscheck, usePointAnalysis } from '@/hooks/use-earthscope'
 import type { ComparePlaceId } from '@/lib/ui/crosscheck-view'
 import { useReducedMotion } from '@/hooks/use-browser'
@@ -198,6 +199,8 @@ export function AppShell() {
           <RainCrosscheck place={region.name} data={crosscheck.data} isLoading={crosscheck.isLoading} error={crosscheck.error} analysisRequested={analysisRequested} onRetry={() => crosscheck.mutate()} />
           <PlaceComparison region={region} variable={variable} point={point.data} compareWith={compareWith} onCompareWith={chooseComparison} startYear={startYear} endYear={endYear} analysisRequested={analysisRequested} />
         </div>
+        {/* Impact lenses: water management and heat exposure, as planning signals (GET /api/impact). */}
+        <ImpactLenses region={region} startYear={startYear} endYear={endYear} analysisRequested={analysisRequested} />
         <EvidencePanel variable={variable} point={point.data} analysisRequested={analysisRequested} error={point.error} isLoading={point.isLoading} />
         </div>
         </section>

@@ -87,3 +87,39 @@ export function resolveCommonMonthlyWindow(manifests: SourceCoverageManifest[], 
     completeMonths,
   }
 }
+
+/** Window modes of the impact lenses (IMPLEMENTACION_LENTES_IMPACTO §6). */
+export type WindowMode = 'source-native' | 'common-complete-window' | 'fixed-window'
+
+export type ImpactWindowResult = {
+  mode: WindowMode
+  requested: { startYear: number; endYear: number }
+  /** null when no common window exists or a fixed window is blocked; never silently truncated. */
+  effective: { startYear: number; endYear: number } | null
+  /** fixed-window only: a source cannot cover every requested year (blocked-by-quality). */
+  blocked: boolean
+  perSource: Array<{ sourceId: string; startYear: number | null; endYear: number | null; completeYears: number[]; missingYears: number[] }>
+}
+
+/**
+ * Resolves the analysis period across sources.
+ * - source-native: each source keeps its own complete years inside the request (for availability, not cross-source trends).
+ * - common-complete-window: the longest continuous run of years complete in every source, inside the request.
+ * - fixed-window: the requested years exactly; if any source misses one, the result is blocked, not shortened.
+ * Each source lists its complete years only (12/12 months, or ≥ 90% valid days, decided by the caller).
+ */
+export function resolveImpactWindow(sources: SourceCoverageManifest[], mode: WindowMode, startYear: number, endYear: number): ImpactWindowResult {
+  const requested = { startYear, endYear }
+  const range = Array.from({ length: endYear - startYear + 1 }, (_, index) => startYear + index)
+  const perSource = sources.map((source) => {
+    const inRange = source.completeYears.filter((year) => year >= startYear && year <= endYear).sort((a, b) => a - b)
+    return { sourceId: source.sourceId, startYear: inRange[0] ?? null, endYear: inRange.at(-1) ?? null, completeYears: inRange, missingYears: range.filter((year) => !inRange.includes(year)) }
+  })
+  if (mode === 'source-native') return { mode, requested, effective: perSource.some((source) => source.completeYears.length) ? requested : null, blocked: false, perSource }
+  if (mode === 'fixed-window') {
+    const blocked = perSource.some((source) => source.missingYears.length > 0)
+    return { mode, requested, effective: blocked ? null : requested, blocked, perSource }
+  }
+  const common = resolveCommonCompleteWindow(sources.map((source) => ({ sourceId: source.sourceId, completeYears: source.completeYears.filter((year) => year <= endYear) })), startYear)
+  return { mode, requested, effective: common ? { startYear: common.startYear, endYear: common.endYear } : null, blocked: false, perSource }
+}

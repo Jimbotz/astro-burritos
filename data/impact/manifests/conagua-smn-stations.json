@@ -1,0 +1,199 @@
+{
+ "sourceId": "conagua-smn-stations",
+ "provider": "CONAGUA / SMN",
+ "product": "Base de Datos Climatológica Nacional, registro diario histórico por estación",
+ "url": "https://smn.conagua.gob.mx/es/climatologia/informacion-climatologica/informacion-estadistica-climatologica",
+ "retrievedAt": "2026-11-15T19:01:06Z",
+ "coverage": {
+  "start": "1981-01-01",
+  "end": "2025-12-31"
+ },
+ "resolution": "weather station",
+ "timeStandard": "local day",
+ "authRequired": false,
+ "accessMode": "bundled-snapshot",
+ "license": "Datos abiertos del Gobierno de México",
+ "checksum": "84314fe5c7bd3fd85fd78c6b54a5295e0a46ebdf82274f944b0d3b0dd1447fa0",
+ "files": [
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21096.txt",
+   "sha256": "bf2db642f3bd7c855d7a06d7f57e82f7b3426a13113aca9e6e7cb748ad138c13"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21249.txt",
+   "sha256": "5905db1f07495fe9aa43e24737872f5a19d9cdde4d3f488ca9cde8c9b260421f"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21192.txt",
+   "sha256": "5e259128219144987e2f7656cb6d64401f2fa35e74cb0e4be01293194f82d8b6"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21067.txt",
+   "sha256": "66c4790de0bcdd4215f1478e718980c105edd3185704a7cc99568b01ae0ad2e5"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21047.txt",
+   "sha256": "80e91e84af90131421733995109c62b6f60f7b4d043bc8879cb257a8f5714e1d"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21032.txt",
+   "sha256": "70b33eb81ecbd8d3f9829ed635f94fc52eabb8ce74865787caa722d2a8504e05"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21210.txt",
+   "sha256": "3b2b3494711c3d9f8dd770343c5ac20f284ebeed868f8ee3eb2b6569ee589daa"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21083.txt",
+   "sha256": "844090180a5514e0266e7bc8137b8ae449e987fcedacd9129488bbba2b88d2a5"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21142.txt",
+   "sha256": "dd4a4631f30d726c53eaf004a0d4fcba6ae6a4572a4bedceae98b29915deed58"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21072.txt",
+   "sha256": "d332274a585b5b8f44fb4c18b39de7658d7a1a8e4264c500d2281c796838cb74"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21094.txt",
+   "sha256": "73e12fa87a2d19ab0c1a04372fc76f7e0e3bbd33bbd8d961cbbcc971e5e64f91"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21189.txt",
+   "sha256": "723dca4d4e9e049fa6ae010e16ba43101b63f8c18a70d61f420a6f2500ef949c"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21244.txt",
+   "sha256": "9ec3a651a92a9b0399e7e41e0b90194408c969db0db60e6198bab90062047166"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21063.txt",
+   "sha256": "c0d6d9ece5a1039bc37ffa7d24c4791d3073208e8bfa4c7907ed799aaced3e87"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21230.txt",
+   "sha256": "86e43e7d4517d3f796e8be334a82444fb57922ba15c2b50209cc36abc0d5b795"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21019.txt",
+   "sha256": "b40d6dcf707cfca234fe14f1d582fd0f5107aced92366a866a382745ab977b95"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/pue/dia21198.txt",
+   "sha256": "b7a0994add48d6fb01088f4141b93b9d8bd93fdb729274dd94b9783b40ad6feb"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/tlax/dia29025.txt",
+   "sha256": "a14d01adfa43667fe7306f8fcdd86412584b7b7b53ebb208fcc3a10058a9d3d8"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/tlax/dia29161.txt",
+   "sha256": "b1f8491af9648a70d012095005b2276d45f0e103bbc939748278a72851eb6e38"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/tlax/dia29002.txt",
+   "sha256": "7414060d66250809ffe86cd5bafd944d6e7401d7c7186dc4896474a73475211f"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/tlax/dia29007.txt",
+   "sha256": "ee485e702369be21696ef13fa3648170f16abed19ba13ec6f74c48b24ac65f20"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20044.txt",
+   "sha256": "b0909a4d8ef2a67eaf39a589a08243b242155638295708a670be145ad33dc66f"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20311.txt",
+   "sha256": "51649aa6c4bc16dcefc26a00f1602e5861408f1c0ef2b4361b6fcedc3c348fdc"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20029.txt",
+   "sha256": "328d741b227fd2928c378fbaaf5556c3be7639ec2f421b83a3c01ed34d26aae4"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20014.txt",
+   "sha256": "d46c692fc4fd2831d1f818916cc4bf27d3c383b461f1e83dabc429a894232f06"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20048.txt",
+   "sha256": "d81fa9e93672c2f2aa64ca123aec42fda729c91ba43f1bc709b03eb41880ee8b"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20350.txt",
+   "sha256": "7bbd0312405cd3cc6874a4ef87fd28f5f0c12d41146a9cc833944cefa60a8e43"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20152.txt",
+   "sha256": "27e6ae4d2b52f8819dc7af40d6ca2b21b60af57fc2a488596c239d84ac2758c1"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20096.txt",
+   "sha256": "ac01d40e9c1e59818cf42d32f81216304234b9a7634c4460045ee35277272671"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20326.txt",
+   "sha256": "dcd82a7b0040048a7ab508f024cdc879053ceee260c1d9d3ddae2ab6607cec4d"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20118.txt",
+   "sha256": "1286f494de99eaa3a91ca6e598b661cbabba72688f6bfa10e09891d9beee8b26"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20007.txt",
+   "sha256": "375839358fad02237de4855b7fc0a79adc53f4b947cd2f1e5c13ab061a5e991d"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20256.txt",
+   "sha256": "c3720242270b7d0a10449241862fb2e9f0c8d926dd9c541330f44cc73c3bfbaf"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20103.txt",
+   "sha256": "fe5babe817d7794cec59f6d871f2991b2a035e93aae888952eb14fbf0c4d8b69"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20038.txt",
+   "sha256": "28fb479af37950d5287163b10a116cbc5a983e12b76ca81972de74b5c7723563"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20003.txt",
+   "sha256": "d8a623718e9688e7b3ec3b13b7dc4975c4871d9a13573e253336e35f0e53dfa4"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20113.txt",
+   "sha256": "5b58623d71e1c61232c03b366ceba17b634ba6e6c825891aa818e16e7dca27d7"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20292.txt",
+   "sha256": "2e2c9866efa2b25582a8c48b989a7646c99984b2f829a40396cc7a5de4741680"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20177.txt",
+   "sha256": "a6f41b498e600294001da751868c72399676301730fb266b282023cfcdfa83e6"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20191.txt",
+   "sha256": "07176379029a4140b99cee2df7b51be136557b76a44bd1091f3b0978dd68b117"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20073.txt",
+   "sha256": "8499e7ee3a41f7554b610cae27e75e3f00bb317fc10da34c3e2708ff1ae86bdc"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20374.txt",
+   "sha256": "932fdae81cc66b3f1d616bb4fc1b0bda8abde135ed288befc2199122d71b874c"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20303.txt",
+   "sha256": "2891a0dbb854f6c19973f5019f5ad98e48cd4ec22da276b66df3baffa5fb1271"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20162.txt",
+   "sha256": "7e507e6b2bb9e9798b327b36e5b05ed7fe658cf3b609054e48dfbdce4f7165e3"
+  },
+  {
+   "url": "https://smn.conagua.gob.mx/tools/RESOURCES/Normales_Climatologicas/Diarios/oax/dia20319.txt",
+   "sha256": "c5fe39b8bcbcf62014a5ffdcb9a2872d578bc6c3bb809db2e064c425c0631c41"
+  }
+ ]
+}

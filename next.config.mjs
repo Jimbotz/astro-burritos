@@ -14,9 +14,15 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // GET /api/region?country=…&state=… reads the Natural Earth outlines from public/geo on the server.
+  // GET /api/region?country=…&state=… reads the Natural Earth outlines from public/geo on the server; /api/impact also
+  // reads the bundled CONAGUA/SMN and INEGI subsets, the per-cell POWER snapshots and the manifests in data/impact.
   outputFileTracingIncludes: {
     '/api/region': ['./public/geo/**/*'],
+    '/api/impact': ['./public/geo/**/*', './data/impact/derived/**/*', './data/impact/manifests/**/*'],
+  },
+  // The raw public downloads (git-ignored, ~600 MB) and the test fixtures never belong in the server bundle.
+  outputFileTracingExcludes: {
+    '/api/impact': ['./data/impact/raw/**/*', './data/impact/fixtures/**/*'],
   },
 }
 

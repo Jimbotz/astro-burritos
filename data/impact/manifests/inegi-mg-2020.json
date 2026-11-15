@@ -1,0 +1,34 @@
+{
+ "sourceId": "inegi-mg-2020",
+ "provider": "INEGI",
+ "product": "Marco Geoestadístico 2020, áreas geoestadísticas municipales (Puebla, Tlaxcala, Oaxaca), simplificadas",
+ "url": "https://www.inegi.org.mx/temas/mg/",
+ "retrievedAt": "2026-11-15T18:56:58Z",
+ "coverage": {
+  "start": "2020-01-01",
+  "end": "2020-12-31"
+ },
+ "resolution": "municipality (simplified to 6% of vertices)",
+ "timeStandard": null,
+ "authRequired": false,
+ "accessMode": "bundled-snapshot",
+ "license": "Términos de libre uso de la información del INEGI",
+ "checksum": null,
+ "files": [
+  {
+   "url": "https://www.inegi.org.mx/contenidos/productos/prod_serv/contenidos/espanol/bvinegi/productos/geografia/marcogeo/889463807469/21_puebla.zip",
+   "sha256": "b279574044375af196c46e6f1553f54986d94ca6b2e8bcaf01e1b9299535637b",
+   "bytes": 152075837
+  },
+  {
+   "url": "https://www.inegi.org.mx/contenidos/productos/prod_serv/contenidos/espanol/bvinegi/productos/geografia/marcogeo/889463807469/29_tlaxcala.zip",
+   "sha256": "b24e153974d1cfeedfff144f2bef6a2765e915519d9673980daa541ec7e8f699",
+   "bytes": 53443866
+  },
+  {
+   "url": "https://www.inegi.org.mx/contenidos/productos/prod_serv/contenidos/espanol/bvinegi/productos/geografia/marcogeo/889463807469/20_oaxaca.zip",
+   "sha256": "e68defedaf372a0a8c1abcce68676a92f5deb2172fe54bf250a9caec00166ec1",
+   "bytes": 174571298
+  }
+ ]
+}

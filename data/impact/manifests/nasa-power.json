@@ -1,0 +1,17 @@
+{
+ "sourceId": "nasa-power",
+ "provider": "NASA",
+ "product": "POWER API v2.10 / MERRA-2 (meteorology), CERES SYN1deg and GEWEX SRB (radiation), GPM IMERG (cross-check rain)",
+ "url": "https://power.larc.nasa.gov/",
+ "retrievedAt": "live (each response records its own retrievedAt)",
+ "coverage": {
+  "start": "1981-01-01",
+  "end": "2025-12-31"
+ },
+ "resolution": "MERRA-2 cell 0.5° x 0.625°",
+ "timeStandard": "LST (IMERG: UTC)",
+ "authRequired": false,
+ "accessMode": "public-api",
+ "license": "NASA POWER data terms (public, attribution requested)",
+ "checksum": null
+}

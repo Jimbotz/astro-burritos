@@ -23,7 +23,7 @@ Tipos TypeScript listos para importar: `lib/api/v2.ts` (`PointResponse`, `Region
 | `TX90p` | Días cálidos | temperature | Extremo térmico | % de días | daily: T2M_MAX | `percent-days-above-p90` | no (diaria) | +2.0 pp/década (no detectable) | +8.5 pp/década (robusta) |
 | `TN90p` | Noches cálidas | temperature | Extremo térmico | % de días | daily: T2M_MIN | `percent-days-above-p90` | no (diaria) | +5.5 pp/década (robusta) | +5.8 pp/década (robusta) |
 | `PRECTOTCORR` | Precipitación anual | precipitation | Núcleo | mm | monthly: PRECTOTCORR | `sum` | sí | +7.3 %/década (débil), sin afirmación | -1.1 %/década (no detectable), sin afirmación |
-| `PREC_MJJASO` | Lluvia de temporada (may–oct) | precipitation | Núcleo | mm | monthly: PRECTOTCORR | `seasonal-sum-may-oct` | sí | +4.1 %/década (no detectable), sin afirmación | -0.8 %/década (no detectable), sin afirmación |
+| `PREC_MJJASO` | Lluvia de la temporada de lluvias (may–oct en Puebla) | precipitation | Núcleo | mm | monthly: PRECTOTCORR | `wet-season-sum` | sí | +4.1 %/década (no detectable), sin afirmación | -0.8 %/década (no detectable), sin afirmación |
 | `QV2M` | Humedad específica (2 m) | humidity | Apoyo | g/kg | monthly: QV2M | `day-weighted-mean` | sí | +0.30 g/kg/década (débil) | +0.26 g/kg/década (robusta) |
 | `RH2M` | Humedad relativa (2 m) | humidity | Apoyo | % | monthly: RH2M | `day-weighted-mean` | sí | +0.4 pp/década (no detectable) | -0.6 pp/década (no detectable) |
 | `GWETROOT` | Humedad del suelo (zona radicular) | soil | Apoyo | fracción 0–1 | monthly: GWETROOT | `day-weighted-mean` | sí | +0.011 fracción/década (débil) | -0.005 fracción/década (no detectable) |
@@ -56,7 +56,7 @@ Lo común a todas es la limpieza (sin `YYYY13`, sin relleno −999, sin imputaci
 - **Método principal**: OLS con intervalo por bootstrap de bloques para variables continuas; Sen con intervalo de Gilbert para series sesgadas, acotadas o de extremos. El p es siempre Hamed–Rao. Los criterios R2, R4 y R5 usan el método principal.
 - **Anomalías**: `annual[].anomaly` frente a la media 1991–2020 de la misma serie (`baseline.mean`), en unidades o en %.
 - **Límites físicos**: los registros nativos fuera de rango se eliminan antes de agregar y se cuentan en `qa.outOfBoundsRecords` (con los datos de 2026-11-14 no hubo ninguno).
-- **Temporadas**: `seasons[]` con la temporada seca (nov–abr, asignada al año de abril) y la de lluvias (may–oct) para las variables que lo requieren. Forman su propia familia de pruebas múltiples (`seasonalFamily`).
+- **Temporadas**: `seasons[]` con la temporada de lluvias y la seca **de cada celda**, para las variables que lo requieren. `seasonDefinition` dice cómo se definieron: la de lluvias son los 6 meses consecutivos más lluviosos de 1991–2020 en esa celda y la seca, los otros 6 (en Puebla: may–oct y nov–abr; en Brasilia: oct–mar y abr–sep). Una temporada que cruza el año se asigna al año en que termina. Si esos 6 meses reúnen menos de 60 % de la lluvia anual, o llueve menos de 100 mm al año, `seasonDefinition` es `null` y no hay sub-series. Forman su propia familia de pruebas múltiples (`seasonalFamily`). `PREC_MJJASO` suma la temporada de lluvias de cada celda (el id conserva MJJASO por compatibilidad).
 - **Umbral de relevancia**: si el veredicto es `robust` o `probable` pero `trend.display.exceedsRelevance === false`, mostrar “significativa pero pequeña” (aviso `below-relevance`).
 - **Referencia esperada**: `profile.expectedValue` (10% para TX90p y TN90p) se dibuja como línea de referencia.
 
@@ -180,9 +180,22 @@ Respuesta (`RegionResponse`):
 
 ### 3.2 Límites y tiempos medidos
 
-- Máximo ~2,500 celdas por región. Más grande → HTTP 413 con mensaje.
+- Máximo ~2,500 celdas por región. Más grande → HTTP 413 con mensaje. La interfaz es más estricta: estima las celdas y los bloques de 5° antes de pedir (unos 2.5 s por bloque sin caché), muestra el tiempo transcurrido con un botón para cancelar y no pide áreas de más de 800 celdas (por ejemplo, México completo); en ese caso pide elegir un estado.
 - POWER se consulta en bloques alineados de 5° × 5° (1 parámetro por bloque). Medido el 2026-11-14: estado de Puebla (21 celdas, 2 bloques) 2–11 s la primera vez; México completo (665 celdas, 35 bloques, 346 KB de respuesta) 87 s la primera vez y 1.7 s después. Los bloques quedan en caché 24 h. Conviene mostrar un estado de carga y, a escala de país, empezar por la variable por defecto.
 - Regiones que cruzan el antimeridiano (por ejemplo Fiyi o Rusia completa) devuelven 422.
+
+### 3.3 Proyección exploratoria (`projection`, `cells[].fit`)
+
+Solo para las variables con `profile.projection` (T2M, TXx, TNn y PRECTOTCORR); en las demás `projection` es `null`. **No es un pronóstico**: es una extrapolación lineal exploratoria (`interpretation: "exploratory-extrapolation"`), según la sección “Linear regression and future values” de `docs/roadmap/data-strategy.md`.
+
+- Cada celda trae `fit: { intercept, slopePerYear, xMean, sxx, residualSd, n, tCrit, ar1 }`: la recta OLS de sus años completos en la ventana. `predict(fit, año, rule.floor)` de `lib/analysis/projection.ts` devuelve el valor y el intervalo de predicción de 95 % para un año nuevo, ensanchado por √((1 + r1)/(1 − r1)) cuando los residuos están autocorrelacionados.
+- Validación sobre la **serie regional ponderada** (`holdout.scope: "regional-series"`), no sobre celda-años: las celdas vecinas comparten el tiempo meteorológico, así que 21 celdas × 5 años no son 105 pruebas independientes. Usa orígenes móviles: cada una de las últimas `rule.holdoutWindows` (2) ventanas de `rule.holdoutYears` (5) años (2015–2019 y 2020–2024) se predice con una recta ajustada a los años anteriores a ella, y los errores se combinan. `holdout.windows` trae la mejora de cada ventana. `holdout` compara la recta con el promedio del entrenamiento: `rmseModel`, `rmseBaseline`, `maeModel`, `maeBaseline`, `skill` = 1 − RMSE(recta)/RMSE(promedio), `bias` (observado − predicho; > 0 = los años recientes quedaron arriba de la recta) y `coverage95`.
+- `status`: `ok` · `blocked-by-quality` (la recta predice peor que el promedio en la ventana más reciente, desde la que se extiende, o la mejora combinada es menor que `rule.minSkill`, 10 %: no se dibuja nada) · `insufficient-data` (menos de `minFitYears + holdoutYears` años completos).
+- `warnings` (con `status: "ok"`): `interval-undercoverage` si menos de `rule.minCoverage` (80 %) de los años reservados cae en el intervalo, y `unstable-skill` si en una ventana anterior la recta predijo peor que el promedio.
+- `horizon` es el rango del deslizador: del inicio de la ventana a `fin + rule.horizonYears` (10). Dentro de `fitYears` se muestra la recta ajustada; después, la extrapolación.
+- `domain` es fijo para todo el rango del deslizador (mínimo y máximo de las rectas en los extremos), así que un cambio de color siempre es un cambio de valor. Escala secuencial: claro = valor bajo, oscuro = alto.
+
+Medido el 2026-11-15 (2001–2024, ventanas 2015–2019 y 2020–2024, serie regional): solo T2M pasa, en Puebla (20 % combinado; −4 % en 2015–2019, por eso lleva `unstable-skill`) y en Oaxaca (27 %), ambos con `interval-undercoverage` porque los años recientes quedaron arriba de la recta. En la ventana 2015–2019 ninguna variable mejora al promedio en 10 %: exigir ambas ventanas por separado bloquearía todo. TXx, TNn y PRECTOTCORR quedan bloqueadas en Puebla, Tlaxcala y Oaxaca (la lluvia de Tlaxcala gana en 2015–2019 pero pierde en 2020–2024).
 
 ## 4. Errores
 
@@ -222,7 +235,7 @@ Se generaron llamando a esta misma API con datos reales de NASA POWER (2026-11-1
 
 1. Limpieza común: se descartan el registro anual `YYYY13`, los valores de relleno −999 y los no numéricos; nada se imputa. Después se eliminan los registros fuera de los límites físicos del perfil.
 2. Años completos: 12/12 meses (o todos los días para las variables diarias). La API v1 todavía acepta 11/12 (hallazgo A1).
-3. Agregación según `aggregation` (media ponderada por días, suma con días reales, temporada mayo–octubre, máximo/mínimo anual, media diaria o porcentaje de días sobre el percentil 90 de 1991–2020) y, si el perfil lo pide, sub-series por temporada.
+3. Agregación según `aggregation` (media ponderada por días, suma con días reales, temporada de lluvias de cada celda, máximo/mínimo anual, media diaria o porcentaje de días sobre el percentil 90 de 1991–2020) y, si el perfil lo pide, sub-series por temporada.
 4. Línea base 1991–2020 (mínimo 25 años completos) y anomalías en unidades o en %.
 5. Tendencia: OLS, Mann–Kendall, Hamed–Rao (p principal), TFPW, Sen con intervalo, bootstrap por bloques (bloque mínimo del perfil), jackknife y ventana de sensibilidad con el método principal del perfil, tendencia mínima detectable, Benjamini–Hochberg y umbral de relevancia.
 6. Región: celdas MERRA-2 nativas, fracción dentro del polígono, línea base y anomalía reciente por celda, pendiente en la escala del perfil, FDR de campo (q < 0.10) y serie regional ponderada por fracción × cos(lat).

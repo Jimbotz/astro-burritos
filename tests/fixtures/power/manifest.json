@@ -1,0 +1,24 @@
+{
+  "retrievedAt": "2026-11-15T08:22:00.394Z",
+  "note": "Real NASA POWER responses (API v2) saved for offline service tests. The regional file keeps only the cells around Tlaxcala.",
+  "requests": [
+    {
+      "file": "monthly-point-puebla.json",
+      "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=T2M%2CT2M_RANGE%2CT2M_MAX%2CT2M_MIN%2CPRECTOTCORR%2CQV2M%2CRH2M%2CGWETROOT&community=AG&latitude=19.04&longitude=-98.2&start=1981&end=2024&format=JSON&time-standard=LST",
+      "features": null,
+      "bytes": 67096
+    },
+    {
+      "file": "daily-point-puebla.json.gz",
+      "url": "https://power.larc.nasa.gov/api/temporal/daily/point?parameters=T2M_MAX%2CT2M_MIN&community=AG&latitude=19.04&longitude=-98.2&start=19810101&end=20241231&format=JSON&time-standard=LST",
+      "features": null,
+      "bytes": 535885
+    },
+    {
+      "file": "monthly-regional-T2M-tlaxcala.json",
+      "url": "https://power.larc.nasa.gov/api/temporal/monthly/regional?parameters=T2M&community=AG&latitude-min=15&latitude-max=20&longitude-min=-100&longitude-max=-95&start=1981&end=2024&format=JSON",
+      "features": 20,
+      "bytes": 172786
+    }
+  ]
+}

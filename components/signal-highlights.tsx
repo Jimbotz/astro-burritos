@@ -6,7 +6,7 @@ import { digitsForUnit, formatSigned, rankSignals, trendDirection, unitEn } from
 
 const MAX_ROWS = 6
 
-// Right column, under the legacy summary: the statable signals at this cell (robust or probable, claims allowed),
+// Right column, next to the historical chart: the statable signals at this cell (robust or probable, claims allowed),
 // ranked so headline variables and larger relative changes come first. Selecting one opens it in the explorer.
 export function SignalHighlights({ point, isLoading, error, onFocus }: { point?: PointResponse; isLoading: boolean; error?: Error; onFocus: (id: VariableId) => void }) {
   const ranked = point ? rankSignals(point.variables) : []

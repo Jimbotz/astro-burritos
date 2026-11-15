@@ -7,6 +7,7 @@ import { annualFromMonthly, baselineMean, type AnnualPoint } from './annual-rule
 import { hamedRao, olsFit, senWithInterval } from './robust-stats'
 import { CELL, type BBox, type RegionalCellRaw } from '../nasa/power'
 import type { AggregationRule, ProcessingProfile } from '../variables/catalog'
+import type { LineFit } from './projection'
 
 export type Position = [number, number]
 export type PolygonGeometry = { type: 'Polygon'; coordinates: Position[][] } | { type: 'MultiPolygon'; coordinates: Position[][][] }
@@ -100,6 +101,8 @@ export type CellResult = {
   qValueField: number | null
   /** True when qValueField < 0.10 (field-level false discovery rate). */
   significantField: boolean
+  /** OLS line of the exploratory projection (only for variables with a projection rule; draw it only when the region projection status is 'ok'). */
+  fit?: LineFit | null
 }
 
 export type RegionCellsAnalysis = {

@@ -7,7 +7,7 @@
  *   This is stricter than the legacy /api/series, which still accepts 11/12 (finding A1).
  * - Temperatures/humidity: day-weighted mean. Precipitation: mm/day × calendar days.
  */
-import type { AggregationRule } from '../variables/catalog'
+import type { AggregationRule, SeasonId } from '../variables/catalog'
 
 export type SeriesMap = Map<string, number>
 export type AnnualPoint = {
@@ -54,7 +54,13 @@ export function parsePowerSeries(raw: Record<string, unknown> | undefined, fillV
 
 /** Annual values from monthly records. */
 export function annualFromMonthly(rule: AggregationRule, monthly: SeriesMap, startYear: number, endYear: number): AnnualPoint[] {
-  const months = rule === 'seasonal-sum-may-oct' ? [5, 6, 7, 8, 9, 10] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+  if (rule === 'wet-season-sum') {
+    // Rain of the cell's own wet season (its 6 rainiest months of 1991–2020); undefined where rain has no clear season.
+    const seasons = cellSeasons(monthly)
+    if (!seasons) return Array.from({ length: endYear - startYear + 1 }, (_, index) => ({ year: startYear + index, value: null, validCount: 0, expectedCount: 6, complete: false }))
+    return seasonalValues(monthly, seasons.wet.months, seasons.wet.crossesYear, startYear, endYear, 'sum')
+  }
+  const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
   const out: AnnualPoint[] = []
   for (let year = startYear; year <= endYear; year += 1) {
     const present = months.filter((month) => monthly.has(monthKey(year, month)))
@@ -63,7 +69,7 @@ export function annualFromMonthly(rule: AggregationRule, monthly: SeriesMap, sta
     if (complete) {
       const values = months.map((month) => monthly.get(monthKey(year, month)) as number)
       if (rule === 'day-weighted-mean') value = months.reduce((sum, month, index) => sum + values[index] * daysInMonth(year, month), 0) / daysInYear(year)
-      else if (rule === 'sum' || rule === 'seasonal-sum-may-oct') value = months.reduce((sum, month, index) => sum + values[index] * daysInMonth(year, month), 0)
+      else if (rule === 'sum') value = months.reduce((sum, month, index) => sum + values[index] * daysInMonth(year, month), 0)
       else if (rule === 'annual-max') value = Math.max(...values)
       else if (rule === 'annual-min') value = Math.min(...values)
       else throw new Error(`Rule ${rule} needs daily records.`)
@@ -167,15 +173,82 @@ export function applyBounds(series: SeriesMap, bounds: { min: number | null; max
   return { series: kept, removed }
 }
 
+// ---------- Seasons of each cell ----------
+
+const MONTH_ABBR = {
+  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  es: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'],
+} as const
+
+/** The 6 rainiest consecutive months must hold at least this share of the 1991–2020 annual rain to call them a season. */
+export const MIN_WET_SHARE = 0.6
+/** Below this mean annual rain (hyper-arid places) a "wet season" is a handful of showers, so no seasons are defined. */
+export const MIN_ANNUAL_RAIN_MM = 100
+
+export type SeasonDefinition = { id: SeasonId; months: number[]; crossesYear: boolean; label: { es: string; en: string } }
+
 /**
- * Seasonal values. Months 11–12 of a crossing season belong to the previous calendar year
- * (the dry season labelled 2010 is Nov 2009 – Apr 2010). Monthly records use a day-weighted mean
- * (or a sum for precipitation); daily records use the mean of every day.
+ * Seasons derived from the cell's own rain, so they work anywhere: the wet season is the 6 consecutive months with the
+ * most rain in the 1991–2020 climatology, the dry season the other 6 (May–Oct / Nov–Apr in central Mexico).
+ */
+export type CellSeasons = { method: 'wettest-6-months'; basePeriod: '1991-2020'; minWetShare: number; wetShare: number; wet: SeasonDefinition; dry: SeasonDefinition }
+
+/** Mean monthly rain total (mm) per calendar month over 1991–2020 from mm/day records; null if a month has < 25 base years. */
+export function rainClimatology(precip: SeriesMap | undefined): number[] | null {
+  if (!precip) return null
+  const totals = Array.from({ length: 12 }, () => ({ sum: 0, years: 0 }))
+  for (let year = BASE_PERIOD.startYear; year <= BASE_PERIOD.endYear; year += 1) {
+    for (let month = 1; month <= 12; month += 1) {
+      const value = precip.get(monthKey(year, month))
+      if (value === undefined) continue
+      totals[month - 1].sum += value * daysInMonth(year, month)
+      totals[month - 1].years += 1
+    }
+  }
+  return totals.some((total) => total.years < 25) ? null : totals.map((total) => total.sum / total.years)
+}
+
+/** Six consecutive calendar months starting at `start` (1–12), wrapping past December. */
+const sixMonths = (start: number) => Array.from({ length: 6 }, (_, index) => ((start - 1 + index) % 12) + 1)
+
+function seasonDefinition(id: SeasonId, months: number[]): SeasonDefinition {
+  const range = (lang: 'en' | 'es') => `${MONTH_ABBR[lang][months[0] - 1]}–${MONTH_ABBR[lang][months[5] - 1]}`
+  return {
+    id, months, crossesYear: months[0] > months[5],
+    label: id === 'wet' ? { es: `Temporada de lluvias (${range('es')})`, en: `Wet season (${range('en')})` } : { es: `Temporada seca (${range('es')})`, en: `Dry season (${range('en')})` },
+  }
+}
+
+/** Wet and dry season of one cell, or null when the climatology is missing or rain has no clear season. */
+export function cellSeasons(precip: SeriesMap | undefined): CellSeasons | null {
+  const climatology = rainClimatology(precip)
+  if (!climatology) return null
+  const annual = climatology.reduce((sum, value) => sum + value, 0)
+  if (!(annual >= MIN_ANNUAL_RAIN_MM)) return null
+  let wettestStart = 1
+  let wettest = -Infinity
+  for (let start = 1; start <= 12; start += 1) {
+    const total = sixMonths(start).reduce((sum, month) => sum + climatology[month - 1], 0)
+    if (total > wettest) { wettest = total; wettestStart = start }
+  }
+  const wetShare = wettest / annual
+  if (wetShare < MIN_WET_SHARE) return null
+  return {
+    method: 'wettest-6-months', basePeriod: '1991-2020', minWetShare: MIN_WET_SHARE, wetShare,
+    wet: seasonDefinition('wet', sixMonths(wettestStart)),
+    dry: seasonDefinition('dry', sixMonths(((wettestStart + 5) % 12) + 1)),
+  }
+}
+
+/**
+ * Seasonal values. In a season that crosses the year, the months from its first month to December belong to the
+ * previous calendar year (the dry season labelled 2010 is Nov 2009 – Apr 2010). Monthly records use a day-weighted
+ * mean (or a sum for precipitation); daily records use the mean of every day.
  */
 export function seasonalValues(records: SeriesMap, months: number[], crossesYear: boolean, startYear: number, endYear: number, mode: 'day-weighted-mean' | 'sum' | 'daily-mean'): AnnualPoint[] {
   const out: AnnualPoint[] = []
   for (let year = startYear; year <= endYear; year += 1) {
-    const slots = months.map((month) => ({ year: crossesYear && month >= 11 ? year - 1 : year, month }))
+    const slots = months.map((month) => ({ year: crossesYear && month >= months[0] ? year - 1 : year, month }))
     let present = 0
     let weighted = 0
     let days = 0

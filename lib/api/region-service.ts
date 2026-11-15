@@ -2,6 +2,7 @@
 import { applyBounds, baselineMean, withAnomalies } from '../analysis/annual-rules'
 import { assessSeries, finalizeFamily, optionsFromProfile, warning } from '../analysis/robust-assessment'
 import { analyzeCells, containsPoint, coverageFraction, estimateCells, expandForCells, FIELD_ALPHA, geometryBBox, legendDomain, MAX_REGION_CELLS, regionalAnnual, type PolygonGeometry } from '../analysis/region'
+import { projectCells } from '../analysis/projection'
 import { fetchMonthlyRegional, type BBox } from '../nasa/power'
 import type { VariableDescriptor } from '../variables/catalog'
 import { SCHEMA_VERSION, type RegionResponse } from './v2'
@@ -51,6 +52,13 @@ export async function analyzeRegion(variable: VariableDescriptor, startYear: num
   const trend = assessSeries(annualFull, startYear, endYear, optionsFromProfile(profile, variable.trendPolicy, variable.unit, baseline))
   if (removed) trend.warnings.push(warning('out-of-bounds-removed'))
   finalizeFamily([{ id: 'regional', trend }])
+  // Exploratory projection: one line per cell, validated on the held-out tail of the area-weighted regional series.
+  let projection: RegionResponse['projection'] = null
+  if (profile.projection) {
+    const projected = projectCells(cells.map((cell) => cell.id), annualByCell, annualFull, startYear, endYear, profile.projection)
+    for (const cell of cells) cell.fit = projected.fits.get(cell.id) ?? null
+    projection = projected.summary
+  }
   const withTrend = cells.filter((cell) => cell.slopePerDecade !== null)
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -73,6 +81,7 @@ export async function analyzeRegion(variable: VariableDescriptor, startYear: num
       warnings: trend.warnings,
     },
     qa: { outOfBoundsRecords: removed },
+    projection,
     sources: fetched.sources,
     notes: [
       'Cells are native MERRA-2 cells (0.5° × 0.625°); draw them as squares, without smoothing or interpolation.',
@@ -80,6 +89,7 @@ export async function analyzeRegion(variable: VariableDescriptor, startYear: num
       'significantField uses Benjamini–Hochberg across the cells of this response at q < 0.10.',
       'slopeDisplay is in variable.profile.displayUnit with the profile’s primary method; anomalyRecent compares the last 5 complete years with 1991–2020.',
       variable.trendPolicy === 'allowed' ? 'Trend statements are allowed for this variable when the verdict supports them.' : 'Do not color or label this variable as a trend: show means or anomalies, not increase/decrease.',
+      ...(projection ? ['projection is an exploratory linear extrapolation, not a forecast: draw cells[].fit only when projection.status is "ok", always with the 95% prediction interval.'] : []),
     ],
   }
 }

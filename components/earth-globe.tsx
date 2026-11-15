@@ -6,6 +6,7 @@ import * as THREE from 'three'
 import type { GlobeMethods } from 'react-globe.gl'
 import type { Region } from '@/components/location-selector'
 import { ZoomControl } from '@/components/zoom-control'
+import { recheckWebGLSupport, useReducedMotion, useWebGLSupport } from '@/hooks/use-browser'
 import { useCountries, useStates, type CountryFeature, type StateFeature } from '@/lib/geo'
 
 const Globe = dynamic(() => import('react-globe.gl'), { ssr: false, loading: () => <div className="globe-loading" role="status">Preparing interactive Earth…</div> })
@@ -72,16 +73,6 @@ function selectVisualProfile(globeWidth: number): VisualProfile {
   return {
     earthTextureUrl: use4K ? EARTH_TEXTURE_4K : EARTH_TEXTURE_2K,
     enhancedEffects: use4K && memory > 4,
-  }
-}
-
-function hasWebGL() {
-  try {
-    const gl = document.createElement('canvas').getContext('webgl2') ?? document.createElement('canvas').getContext('webgl')
-    gl?.getExtension('WEBGL_lose_context')?.loseContext()
-    return Boolean(gl)
-  } catch {
-    return false
   }
 }
 
@@ -206,22 +197,22 @@ export function EarthGlobe({ region, paused, resetSignal, onSelect }: { region: 
   const wrapRef = useRef<HTMLDivElement>(null)
   const cloudMeshRef = useRef<THREE.Mesh | null>(null)
   const renderActiveRef = useRef(true)
-  const [webgl, setWebgl] = useState<boolean | null>(null)
+  const webgl = useWebGLSupport()
+  const [, setWebglRetries] = useState(0)
   const [ready, setReady] = useState(false)
   const [size, setSize] = useState({ width: 0, height: 0 })
   const [visualProfile, setVisualProfile] = useState<VisualProfile | null>(null)
+  // Pick once after the canvas has a real size, avoiding a wasteful 2K-to-4K texture swap (adjusted during render).
+  if (size.width > 0 && !visualProfile) setVisualProfile(selectVisualProfile(size.width))
   const earthMaterial = useMemo(() => new THREE.MeshPhongMaterial({ color: 0x000000, specular: new THREE.Color(OCEAN_SPECULAR_LOADING), shininess: 72 }), [])
   const [hovered, setHovered] = useState<Area | null>(null)
   const [zoom, setZoom] = useState(1)
   // The selection rings pulse even while rotation is paused (selecting pauses it); only reduced motion hides them.
-  const [reducedMotion, setReducedMotion] = useState(false)
-  useEffect(() => setReducedMotion(matchMedia('(prefers-reduced-motion: reduce)').matches), [])
+  const reducedMotion = useReducedMotion()
   const positioned = useRef(false)
   const lastReset = useRef(resetSignal)
   const countries = useCountries().data?.features
   const states = useStates(region.country).data?.features
-
-  useEffect(() => setWebgl(hasWebGL()), [])
 
   // Render at the container's size instead of a fixed canvas.
   useEffect(() => {
@@ -231,11 +222,6 @@ export function EarthGlobe({ region, paused, resetSignal, onSelect }: { region: 
     observer.observe(wrap)
     return () => observer.disconnect()
   }, [])
-
-  // Pick once after the canvas has a real size, avoiding a wasteful 2K-to-4K texture swap.
-  useEffect(() => {
-    if (size.width > 0 && !visualProfile) setVisualProfile(selectVisualProfile(size.width))
-  }, [size.width, visualProfile])
 
   // Stop the render loop while the globe is off-screen or the tab is hidden.
   // Re-subscribes on `ready`: a new IntersectionObserver fires once immediately, so a globe that
@@ -380,7 +366,7 @@ export function EarthGlobe({ region, paused, resetSignal, onSelect }: { region: 
   return <>
   <div ref={wrapRef} className="globe-canvas" role="img" aria-label="Interactive Earth globe. Drag to rotate, scroll to zoom, click a country and then a state to select it.">
     {webgl === false
-      ? <div className="globe-fallback" role="alert"><div className="fallback-globe"><GlobeFallbackIcon /></div><p>Interactive globe unavailable</p><span>Your browser could not start WebGL. Use the location selector to explore a region.</span><button type="button" onClick={() => setWebgl(hasWebGL())}>Retry globe</button></div>
+      ? <div className="globe-fallback" role="alert"><div className="fallback-globe"><GlobeFallbackIcon /></div><p>Interactive globe unavailable</p><span>Your browser could not start WebGL. Use the location selector to explore a region.</span><button type="button" onClick={() => { recheckWebGLSupport(); setWebglRetries((count) => count + 1) }}>Retry globe</button></div>
       : webgl && size.width > 0 && visualProfile && <Globe ref={globeRef} width={size.width} height={size.height} backgroundColor="rgba(0,0,0,0)" globeImageUrl={visualProfile.earthTextureUrl} bumpImageUrl={visualProfile.enhancedEffects ? '/textures/earth-topology.png' : '/textures/earth-topology.jpg'} globeMaterial={earthMaterial} showAtmosphere atmosphereColor={ATMOSPHERE_COLOR} atmosphereAltitude={visualProfile.enhancedEffects ? 0.18 : 0.2} onGlobeReady={handleReady} onGlobeClick={handleClick} onZoom={handleZoom} polygonsData={polygons} polygonCapColor={capColor} polygonSideColor={noSideWalls} polygonStrokeColor={strokeColor} polygonAltitude={altitude} polygonLabel={label} polygonsTransitionDuration={200} onPolygonClick={handlePolygonClick} onPolygonHover={handlePolygonHover} pointsData={points} pointAltitude={0.035} pointColor={pointColor} pointRadius={0.3} pointResolution={20} pointsTransitionDuration={550} ringsData={reducedMotion ? [] : points} ringAltitude={0.025} ringColor={ringColor} ringMaxRadius={2.5} ringPropagationSpeed={0.75} ringRepeatPeriod={1250} ringResolution={96} animateIn={false} />}
   </div>
   {/* Outside the role="img" canvas wrapper so it stays an operable control for assistive tech. */}

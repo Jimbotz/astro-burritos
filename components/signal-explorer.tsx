@@ -19,7 +19,7 @@ const GROUPS: Array<{ id: GroupFilter; label: string }> = [
 ]
 
 // Every variable processed by API v2 for the analysis point (GET /api/point), as filterable cards plus the
-// detail of the selected one. Requested together with the legacy series by "Analyze region".
+// detail of the selected one. Requested by "Analyze region" (API v2 /api/point).
 export function SignalExplorer({ point, isLoading, error, analysisRequested, focus, onFocus, onRetry, startYear, endYear }: {
   point?: PointResponse
   isLoading: boolean

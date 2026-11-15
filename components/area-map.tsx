@@ -1,23 +1,37 @@
 'use client'
 
 import { useEffect, useId, useMemo, useState } from 'react'
-import { Crosshair, Map as MapIcon, MapPin } from 'lucide-react'
+import { Map as MapIcon, MapPin, MapPinned } from 'lucide-react'
 import { PanelHeader } from '@/components/panel-header'
 import type { Region } from '@/components/location-selector'
-import { MapCells, MapLayerPanel, effectiveKind, isMapVariable, type LayerKind } from '@/components/map-layer'
+import { MapCells, MapLayerResult, MapLegend, canProject, effectiveKind, isMapVariable, type LayerKind } from '@/components/map-layer'
+import { ProjectionPanel } from '@/components/map-projection'
 import { useRegionLayer } from '@/hooks/use-earthscope'
+import { useReducedMotion } from '@/hooks/use-browser'
 import type { VariableId } from '@/lib/api/v2'
+import { estimateCells, expandForCells, geometryBBox, type PolygonGeometry } from '@/lib/analysis/region'
+import { tilesFor } from '@/lib/nasa/power'
 import { fitProjection, niceKm, useCountries, useStates } from '@/lib/geo'
 
 const WIDTH = 600
 const HEIGHT = 320
+// Projection animation: one year per tick, a longer hold on the last year before it loops back to the first.
+const YEAR_MS = 500
+const END_HOLD_MS = 1600
+// Grid size guard for the map: above this many cells (in the box the server fetches) the user is asked for a state.
+// The API itself accepts up to 2,500. Measured 2026-11-14: about 2.5 s per uncached 5° POWER block (Mexico: 35 blocks, 87 s).
+export const MAP_MAX_CELLS = 800
+const SECONDS_PER_TILE = 2.5
+
+/** Projection controls for one loaded response (`key`); a new response starts again from the defaults. */
+type ProjectionUi = { key: string | null; on: boolean; playing: boolean; year: number }
 
 const hemisphere = (value: number, positive: string, negative: string) => `${Math.abs(value).toFixed(2)}° ${value >= 0 ? positive : negative}`
 
 // The selected state or country fitted to the box, with neighbors for context and the analysis point.
-// Selection happens on the globe and in the selects. An optional data layer (API v2 /api/region) colors the
-// native NASA POWER cells inside the boundary; it is off until the user asks for it.
-export function AreaMap({ region, startYear, endYear, preferredVariable }: { region: Region; startYear: number; endYear: number; preferredVariable: VariableId }) {
+// Selection happens on the globe and in step 1, which also picks the variable and the layer kind. The data layer
+// (API v2 /api/region) colors the native NASA POWER cells inside the boundary once Analyze is pressed (`active`).
+export function AreaMap({ region, startYear, endYear, variable, kind, active }: { region: Region; startYear: number; endYear: number; variable: VariableId; kind: LayerKind; active: boolean }) {
   const countries = useCountries().data?.features
   const states = useStates(region.country).data?.features
   const country = countries?.find((feature) => feature.properties.ADM0_A3 === region.country)
@@ -27,15 +41,59 @@ export function AreaMap({ region, startYear, endYear, preferredVariable }: { reg
   // useId may contain characters that break url(#…) references, so keep only safe ones.
   const clipId = `area-clip-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
 
-  const [layerVariable, setLayerVariable] = useState<VariableId>(isMapVariable(preferredVariable) ? preferredVariable : 'T2M')
-  const [layerKind, setLayerKind] = useState<LayerKind>('anomaly')
-  const [layerActive, setLayerActive] = useState(false)
   const areaId = `${region.country ?? ''}|${region.state ?? ''}`
-  // A new area or period never triggers a grid request by itself (a large country can take a minute).
-  useEffect(() => { setLayerActive(false) }, [areaId, startYear, endYear])
-  useEffect(() => { if (isMapVariable(preferredVariable)) setLayerVariable(preferredVariable) }, [preferredVariable])
-  const layer = useRegionLayer(layerActive && target ? { areaId, variable: layerVariable, startYear, endYear, geometry: target.geometry } : null)
-  const layerData = layerActive ? layer.data : undefined
+  // Only Analyze requests the grid (a large country can take a minute); any new area, period or variable resets `active`.
+  // The layer kind only changes the coloring, so switching it never repeats the request.
+  // Size and time of the grid before asking for it: cells and aligned 5° POWER blocks in the box the server fetches.
+  const estimate = useMemo(() => {
+    if (!target) return null
+    const box = expandForCells(geometryBBox(target.geometry as unknown as PolygonGeometry))
+    const tiles = tilesFor(box).length
+    return { cells: estimateCells(box), tiles, seconds: Math.max(3, Math.round(tiles * SECONDS_PER_TILE)) }
+  }, [target])
+  const tooLarge = estimate !== null && estimate.cells > MAP_MAX_CELLS
+  // A cancel belongs to one query: a new area, variable, period or Analyze clears it without an effect.
+  const queryKey = `${areaId}|${variable}|${startYear}|${endYear}|${active}`
+  const [cancelledKey, setCancelledKey] = useState<string | null>(null)
+  const cancelled = cancelledKey === queryKey
+  const layer = useRegionLayer(active && target && isMapVariable(variable) && !tooLarge && !cancelled ? { areaId, variable, startYear, endYear, geometry: target.geometry } : null)
+  const layerData = active && !cancelled ? layer.data : undefined
+  const layerLoading = active && !cancelled && layer.isLoading
+  // Elapsed seconds while the grid loads (a large state can take several seconds the first time).
+  const [elapsed, setElapsed] = useState(0)
+  useEffect(() => {
+    if (!layerLoading) return
+    const started = Date.now()
+    const timer = setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 1000)
+    return () => { clearInterval(timer); setElapsed(0) }
+  }, [layerLoading])
+
+  // Exploratory projection (step 3 only). Each loaded response starts its own session: on, and playing in a loop from
+  // the first to the last year (paused on the last data year under prefers-reduced-motion), until the user acts.
+  const reducedMotion = useReducedMotion()
+  const projectable = canProject(layerData)
+  const summary = layerData?.projection ?? null
+  const sessionKey = projectable && summary ? `${queryKey}|${summary.fitYears.join('-')}` : null
+  const defaults = useMemo<ProjectionUi>(() => sessionKey && summary
+    ? { key: sessionKey, on: true, playing: !reducedMotion, year: reducedMotion ? summary.fitYears[1] : summary.horizon[0] }
+    : { key: null, on: false, playing: false, year: endYear }, [sessionKey, summary, reducedMotion, endYear])
+  const [ui, setUi] = useState<ProjectionUi | null>(null)
+  const current = ui && ui.key === defaults.key ? ui : defaults
+  // Picking a step 1 layer (anomaly, trend, average) shows that layer instead of the projection (adjusted during render).
+  const [seenKind, setSeenKind] = useState(kind)
+  if (seenKind !== kind) {
+    setSeenKind(kind)
+    setUi({ ...current, on: false, playing: false })
+  }
+  const shownYear = current.on && projectable ? current.year : null
+  const [firstYear, lastYear] = summary?.horizon ?? [startYear, endYear]
+  useEffect(() => {
+    if (shownYear === null || !current.playing) return
+    const atEnd = current.year >= lastYear
+    const next = atEnd || current.year < firstYear ? firstYear : current.year + 1
+    const timer = setTimeout(() => setUi({ ...current, year: next }), atEnd ? END_HOLD_MS : YEAR_MS)
+    return () => clearTimeout(timer)
+  }, [current, shownYear, firstYear, lastYear])
 
   const map = useMemo(() => {
     if (!target) return null
@@ -47,14 +105,16 @@ export function AreaMap({ region, startYear, endYear, preferredVariable }: { reg
   }, [target, states, countries, region.country])
 
   const coords = `${hemisphere(region.lat, 'N', 'S')} • ${hemisphere(region.lon, 'E', 'W')}`
-  const cells = map && layerData ? <g clipPath={`url(#${clipId})`}><MapCells data={layerData} kind={effectiveKind(layerKind, layerData)} project={map.projection.project} /></g> : null
+  const cells = map && layerData ? <g clipPath={`url(#${clipId})`}><MapCells data={layerData} kind={effectiveKind(kind, layerData.variable.trendPolicy)} project={map.projection.project} projectionYear={shownYear} /></g> : null
+  const coloredBy = layerData ? `, colored by ${layerData.variable.label.en}${shownYear !== null ? ` projected to ${shownYear}` : ''}` : ''
 
   return <section className="area-panel panel" aria-labelledby="area-title">
-    <PanelHeader badge="Step 3" title="Exact place (optional)" icon={Crosshair} />
+    <PanelHeader badge="Step 3" title="See it on the map" icon={MapPinned} />
     <div className="chart-header"><h2 id="area-title">{title ?? 'No area selected'} {state && country && <span className="range-label">{country.properties.NAME}</span>}</h2></div>
     {map ? <>
+      <div className="area-map-row">
       <div className="area-map">
-        <svg className="area-svg" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={`Outline of ${region.name} with the analysis point at ${coords}${layerData ? `, colored by ${layerData.variable.label.en}` : ''}`}>
+        <svg className="area-svg" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={`Outline of ${region.name} with the analysis point at ${coords}${coloredBy}`}>
           <defs><clipPath id={clipId}><path d={map.shape} /></clipPath></defs>
           <path className="area-neighbor" d={map.neighbors} />
           {region.state
@@ -65,6 +125,23 @@ export function AreaMap({ region, startYear, endYear, preferredVariable }: { reg
         </svg>
         <AreaScale kmPerPixel={map.projection.kmPerPixel} />
       </div>
+      <MapLegend data={layerData} kind={kind} projectionYear={shownYear} />
+      </div>
+      <ProjectionPanel
+        variable={variable}
+        data={layerData}
+        active={active && !tooLarge && !cancelled}
+        isLoading={layerLoading}
+        on={current.on}
+        onToggle={() => setUi({ ...current, on: !current.on, playing: !current.on })}
+        playing={current.playing && shownYear !== null}
+        onPlayToggle={() => setUi({ ...current, on: true, playing: !(current.playing && shownYear !== null) })}
+        year={current.year}
+        onScrub={(year) => setUi({ ...current, on: true, playing: false, year })}
+        startYear={startYear}
+        endYear={endYear}
+        unavailable={tooLarge ? 'This area is too large for the map grid: choose a state to fit and project its cells.' : cancelled ? 'Grid request cancelled: press Analyze region again to fit the lines.' : undefined}
+      />
       <div className="globe-caption"><span className="legend-item"><span className="legend-point" /> ANALYSIS POINT</span><span className="globe-location"><MapPin size={16} /> {coords}</span></div>
       <p className="field-hint">NASA POWER analyzes the marked point, not an area average. Boundaries: Natural Earth (public domain).</p>
     </> : <div className="chart-empty" role="status">
@@ -72,18 +149,21 @@ export function AreaMap({ region, startYear, endYear, preferredVariable }: { reg
       <strong>{region.country ? 'Loading boundaries…' : 'No country at this point'}</strong>
       <p>{region.country ? 'Natural Earth outlines load from this site, not an external service.' : 'Select a country or state on the globe or in the list to see its outline.'}</p>
     </div>}
-    <MapLayerPanel
-      variable={layerVariable}
-      onVariable={setLayerVariable}
-      kind={layerKind}
-      onKind={setLayerKind}
-      active={layerActive}
-      onToggle={() => setLayerActive((value) => !value)}
+    <MapLayerResult
+      variable={variable}
+      kind={kind}
+      active={active}
       data={layerData}
-      isLoading={layerActive && layer.isLoading}
-      error={layerActive ? layer.error : undefined}
+      isLoading={layerLoading}
+      error={active && !cancelled ? layer.error : undefined}
       areaName={title}
       canRequest={Boolean(target)}
+      estimate={estimate}
+      tooLarge={tooLarge}
+      maxCells={MAP_MAX_CELLS}
+      elapsed={elapsed}
+      cancelled={cancelled}
+      onCancel={() => setCancelledKey(queryKey)}
     />
   </section>
 }

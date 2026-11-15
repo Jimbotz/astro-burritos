@@ -70,7 +70,7 @@ function studentTCdf(value: number, degreesOfFreedom: number) {
   return value > 0 ? 1 - incompleteBeta / 2 : incompleteBeta / 2
 }
 
-function studentTQuantile(probability: number, degreesOfFreedom: number) {
+export function studentTQuantile(probability: number, degreesOfFreedom: number) {
   let low = 0
   let high = 1
   while (studentTCdf(high, degreesOfFreedom) < probability && high < 1e6) high *= 2

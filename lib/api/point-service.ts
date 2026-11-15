@@ -1,9 +1,9 @@
 /** Orchestrates GET /api/point: fetch POWER once, clean, aggregate, assess every catalog variable with its profile. */
-import { annualFromDaily, annualFromMonthly, applyBounds, BASE_PERIOD, baselineMean, calendarThresholds, monthlyClimatology, monthlySeries, seasonalValues, withAnomalies, type SeriesMap } from '../analysis/annual-rules'
+import { annualFromDaily, annualFromMonthly, applyBounds, BASE_PERIOD, baselineMean, calendarThresholds, cellSeasons, monthlyClimatology, monthlySeries, seasonalValues, withAnomalies, type SeriesMap } from '../analysis/annual-rules'
 import { assessSeries, finalizeFamily, optionsFromProfile, sensitivityWindow, warning, type RobustTrend } from '../analysis/robust-assessment'
 import { cellBounds } from '../analysis/region'
 import { CELL, fetchDailyPoint, fetchMonthlyPoint } from '../nasa/power'
-import { POINT_VARIABLE_IDS, SEASONS, VARIABLES, type PowerDailyParameter, type PowerMonthlyParameter, type VariableId } from '../variables/catalog'
+import { POINT_VARIABLE_IDS, VARIABLES, type PowerDailyParameter, type PowerMonthlyParameter, type VariableId } from '../variables/catalog'
 import { SCHEMA_VERSION, type PointResponse, type VariableResult } from './v2'
 
 const FETCH_START = 1981
@@ -19,6 +19,7 @@ export async function analyzePoint(latitude: number, longitude: number, startYea
   ])
   const thresholds: Record<string, Map<string, number> | null> = {}
   const seasonal: Array<{ id: string; trend: RobustTrend }> = []
+  const seasonDefinition = cellSeasons(applyBounds(monthly.series.PRECTOTCORR as SeriesMap, { min: 0, max: 500 }).series)
   const results: VariableResult[] = pointVariables.map((variable) => {
     const profile = variable.profile
     const parameter = variable.source.parameters[0]
@@ -36,8 +37,9 @@ export async function analyzePoint(latitude: number, longitude: number, startYea
     const options = optionsFromProfile(profile, variable.trendPolicy, variable.unit, baseline)
     const trend = assessSeries(annualAll, startYear, endYear, options)
     if (bounded.removed) trend.warnings.push(warning('out-of-bounds-removed'))
-    const seasons = profile.seasons.map((seasonId) => {
-      const season = SEASONS[seasonId]
+    // Seasons come from this cell's own rain (null where rain has no clear season: no seasonal sub-series then).
+    const seasons = (seasonDefinition ? profile.seasons : []).map((seasonId) => {
+      const season = seasonDefinition![seasonId]
       const mode = isDaily ? 'daily-mean' as const : variable.aggregation === 'sum' ? 'sum' as const : 'day-weighted-mean' as const
       const seasonAnnual = seasonalValues(records, season.months, season.crossesYear, FETCH_START, fetchEnd, mode)
       const seasonBaseline = baselineMean(seasonAnnual)
@@ -71,6 +73,7 @@ export async function analyzePoint(latitude: number, longitude: number, startYea
     window: { startYear, endYear, mode: 'fixed', sensitivity: sensitivityWindow(startYear, endYear) },
     family: { method: 'benjamini-hochberg', alpha: 0.05, pValue: 'hamed-rao', members: POINT_VARIABLE_IDS, note: 'q is always computed over all catalog point variables, so filtering ?variables= does not change it.' },
     seasonalFamily: { method: 'benjamini-hochberg', alpha: 0.05, members: seasonal.map((item) => item.id), note: 'Seasonal sub-series form their own family so they do not dilute the annual results.' },
+    seasonDefinition,
     sources: [monthly.source, daily.source],
     variables: results.filter((result) => requested.includes(result.id)),
   }

@@ -1,4 +1,5 @@
 import type { RobustTrend, VariableResult, Verdict } from '@/lib/api/v2'
+import type { AggregationRule } from '@/lib/variables/catalog'
 
 // Display helpers for the API v2 panels. The interface is in English with a real minus sign (U+2212);
 // the API keeps some unit labels in Spanish, so they are translated here in one place.
@@ -42,6 +43,23 @@ export function digitsForUnit(unit: string) {
   if (text.startsWith('fraction')) return 3
   if (text.startsWith('mm')) return 0
   return 2
+}
+
+/** NASA POWER reports coverage as YYYYMMDD; show it as YYYY-MM-DD. Anything else passes through. */
+export function formatPowerDate(value: string | null | undefined) {
+  if (!value) return '—'
+  return /^\d{8}$/.test(value) ? `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6)}` : value
+}
+
+/** How the annual value is built from the native records, as a short label (e.g. "°C annual maximum"). */
+export const AGGREGATION_LABEL: Record<AggregationRule, string> = {
+  'day-weighted-mean': 'annual mean',
+  sum: 'annual total',
+  'wet-season-sum': 'wet-season total',
+  'annual-max': 'annual maximum',
+  'annual-min': 'annual minimum',
+  'daily-mean': 'annual mean of daily values',
+  'percent-days-above-p90': 'share of days above the 90th percentile',
 }
 
 export const VERDICT_LABEL: Record<Verdict, string> = {

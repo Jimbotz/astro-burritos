@@ -6,6 +6,7 @@ import type { RobustTrend, VariableResult } from '@/lib/api/v2'
 import { getVariable } from '@/lib/variables/catalog'
 import { ClimatologyChart } from '@/components/climatology-chart'
 import { SeriesChart, type SeriesLine } from '@/components/series-chart'
+import { Term } from '@/components/term'
 import { VerdictBadge } from '@/components/verdict-badge'
 import { digitsForUnit, formatNumber, formatPValue, formatSigned, unitEn } from '@/lib/ui/format'
 
@@ -100,7 +101,11 @@ export function VariableDetail({ result, startYear, endYear }: { result: Variabl
               <VerdictBadge verdict={season.trend.verdict} />
             </li>)}
           </ul>
-          <p className="chart-disclaimer">Seasons form their own multiple-testing family, so they do not change the annual result.</p>
+          <p className="chart-disclaimer">Seasons come from this cell’s own rain: the wet season is its 6 rainiest months of 1991–2020, the dry season the other 6. They form their own multiple-testing family, so they do not change the annual result.</p>
+        </div>}
+        {result.seasons.length === 0 && result.profile.seasons.length > 0 && <div className="detail-block">
+          <h4><CalendarRange size={16} /> By season</h4>
+          <p className="evidence-muted">No seasons at this cell: it gets less than 100 mm of rain a year, or its 6 rainiest months hold less than 60% of it (1991–2020), so a wet/dry split would not mean much.</p>
         </div>}
       </div>
 
@@ -111,14 +116,14 @@ export function VariableDetail({ result, startYear, endYear }: { result: Variabl
           <span className="signal-ci">{display.ci95 ? `95% CI ${formatSigned(display.ci95[0], slopeDigits)} to ${formatSigned(display.ci95[1], slopeDigits)}` : 'Interval not estimable'}</span>
           <VerdictBadge verdict={trend.verdict} />
         </div>
-        <div className="metric-row"><span>Hamed–Rao p-value</span><strong>{formatPValue(trend.pValueHamedRao)}</strong></div>
-        <div className="metric-row"><span>q-value (13 variables)</span><strong>{formatPValue(trend.qValue)}</strong></div>
-        <div className="metric-row"><span>Smallest detectable trend</span><strong>{formatNumber(trend.minimumDetectablePerDecade, nativeDigits)} {unitEn(result.trendUnit)}</strong></div>
-        <div className="metric-row"><span>Relevance threshold</span><strong>{profile.relevanceThreshold} {unitEn(profile.displayUnit)}</strong></div>
+        <div className="metric-row"><span><Term name="hamedRao">Hamed–Rao p-value</Term></span><strong>{formatPValue(trend.pValueHamedRao)}</strong></div>
+        <div className="metric-row"><span><Term name="qValue">q-value (13 variables)</Term></span><strong>{formatPValue(trend.qValue)}</strong></div>
+        <div className="metric-row"><span><Term name="minimumDetectable">Smallest detectable trend</Term></span><strong>{formatNumber(trend.minimumDetectablePerDecade, nativeDigits)} {unitEn(result.trendUnit)}</strong></div>
+        <div className="metric-row"><span><Term name="relevance">Relevance threshold</Term></span><strong>{profile.relevanceThreshold} {unitEn(profile.displayUnit)}</strong></div>
         <div className="metric-row"><span>Complete years</span><strong>{trend.nYears}</strong></div>
-        {trend.sensitivity && <div className="metric-row"><span>Sensitivity {trend.sensitivity.startYear}–{trend.sensitivity.endYear}</span><strong>{formatSigned(trend.sensitivity.slopePerDecade, nativeDigits)} {unitEn(result.trendUnit)}</strong></div>}
+        {trend.sensitivity && <div className="metric-row"><span><Term name="sensitivity">Sensitivity {trend.sensitivity.startYear}–{trend.sensitivity.endYear}</Term></span><strong>{formatSigned(trend.sensitivity.slopePerDecade, nativeDigits)} {unitEn(result.trendUnit)}</strong></div>}
 
-        <h4 className="criteria-title"><ListChecks size={16} /> Robustness criteria • {trend.criteriaMet}/5</h4>
+        <h4 className="criteria-title"><ListChecks size={16} /> <Term name="robustness">Robustness criteria</Term> • {trend.criteriaMet}/5</h4>
         {trend.criteria ? <ul className="criteria-list">
           {CRITERIA.map((criterion) => {
             const met = trend.criteria?.[criterion.key]

@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { annualFromDaily, annualFromMonthly, applyBounds, baselineMean, calendarThresholds, daysInMonth, monthlyClimatology, monthlySeries, parsePowerSeries, seasonalValues, withAnomalies, type AnnualPoint, type SeriesMap } from '../../lib/analysis/annual-rules'
+import { annualFromDaily, annualFromMonthly, applyBounds, baselineMean, calendarThresholds, cellSeasons, daysInMonth, monthlyClimatology, monthlySeries, parsePowerSeries, seasonalValues, withAnomalies, type AnnualPoint, type SeriesMap } from '../../lib/analysis/annual-rules'
 
 function monthlyYear(year: number, value: (month: number) => number, skip: number[] = []): SeriesMap {
   const map: SeriesMap = new Map()
   for (let month = 1; month <= 12; month += 1) if (!skip.includes(month)) map.set(`${year}-${String(month).padStart(2, '0')}`, value(month))
+  return map
+}
+
+/** Monthly rain (mm/day) for every year in [a, b] following one calendar-month profile. */
+function rainYears(a: number, b: number, profile: (month: number) => number): SeriesMap {
+  const map: SeriesMap = new Map()
+  for (let year = a; year <= b; year += 1) for (const [key, value] of monthlyYear(year, profile)) map.set(key, value)
   return map
 }
 
@@ -33,8 +40,7 @@ describe('monthly aggregation', () => {
     expect(annualFromMonthly('day-weighted-mean', monthlyYear(2001, () => 10), 2001, 2001)[0].value).toBeCloseTo(10, 12)
   })
 
-  it('builds the May–October season and annual extremes', () => {
-    expect(annualFromMonthly('seasonal-sum-may-oct', monthlyYear(2001, () => 1, [1, 2]), 2001, 2001)[0].value).toBe(184)
+  it('builds annual extremes', () => {
     expect(annualFromMonthly('annual-max', monthlyYear(2001, (m) => m), 2001, 2001)[0].value).toBe(12)
     expect(annualFromMonthly('annual-min', monthlyYear(2001, (m) => m), 2001, 2001)[0].value).toBe(1)
   })
@@ -108,5 +114,45 @@ describe('profile rules', () => {
     expect(withAnomalies(points, 'absolute', 10).at(-1)?.anomaly).toBe(2)
     expect(withAnomalies(points, 'percent', 10).at(-1)?.anomaly).toBeCloseTo(20, 10)
     expect(baselineMean(points.slice(0, 24))).toBeNull()
+  })
+})
+
+describe('seasons of each cell (6 rainiest months of 1991–2020)', () => {
+  // Central Mexico: rain from May to October.
+  const puebla = rainYears(1981, 2024, (m) => (m >= 5 && m <= 10 ? 5 : 0.4))
+  // Southern hemisphere summer rain (e.g. southern Brazil interior): October to March.
+  const south = rainYears(1981, 2024, (m) => (m >= 10 || m <= 3 ? 6 : 0.5))
+
+  it('finds May–Oct / Nov–Apr in central Mexico', () => {
+    const seasons = cellSeasons(puebla)!
+    expect(seasons.wet.months).toEqual([5, 6, 7, 8, 9, 10])
+    expect(seasons.wet.crossesYear).toBe(false)
+    expect(seasons.dry.months).toEqual([11, 12, 1, 2, 3, 4])
+    expect(seasons.dry.crossesYear).toBe(true)
+    expect(seasons.wet.label.en).toBe('Wet season (May–Oct)')
+    expect(seasons.dry.label.es).toBe('Temporada seca (nov–abr)')
+    expect(seasons.wetShare).toBeGreaterThan(0.8)
+  })
+
+  it('finds a wet season that crosses the year in the southern hemisphere', () => {
+    const seasons = cellSeasons(south)!
+    expect(seasons.wet.months).toEqual([10, 11, 12, 1, 2, 3])
+    expect(seasons.wet.crossesYear).toBe(true)
+    expect(seasons.wet.label.en).toBe('Wet season (Oct–Mar)')
+    expect(seasons.dry.months).toEqual([4, 5, 6, 7, 8, 9])
+  })
+
+  it('declines to define seasons where rain is spread through the year or the base period is missing', () => {
+    expect(cellSeasons(rainYears(1981, 2024, (m) => 3 + (m % 2) * 0.2))).toBeNull()
+    expect(cellSeasons(rainYears(2001, 2024, (m) => (m >= 5 && m <= 10 ? 5 : 0.4)))).toBeNull()
+    expect(cellSeasons(rainYears(1981, 2024, (m) => (m >= 6 && m <= 9 ? 0.2 : 0.01)))).toBeNull() // ≈ 26 mm a year: desert
+  })
+
+  it('totals the wet season of each cell, labelling a crossing season by the year it ends', () => {
+    // Oct 2009 – Mar 2010 at 6 mm/day: 31+30+31 + 31+28+31 = 182 days.
+    const [point] = annualFromMonthly('wet-season-sum', south, 2010, 2010)
+    expect(point).toMatchObject({ year: 2010, complete: true, value: 182 * 6 })
+    expect(annualFromMonthly('wet-season-sum', puebla, 2001, 2001)[0].value).toBe(184 * 5)
+    expect(seasonalValues(south, [10, 11, 12, 1, 2, 3], true, 1981, 1981, 'sum')[0].complete).toBe(false) // Oct–Dec 1980 not fetched
   })
 })

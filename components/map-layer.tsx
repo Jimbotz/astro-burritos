@@ -1,11 +1,13 @@
 'use client'
 
-import { ChevronDown, Eye, EyeOff, Layers, LoaderCircle } from 'lucide-react'
-import type { CellResult, RegionResponse, VariableId } from '@/lib/api/v2'
+import { Layers, LoaderCircle } from 'lucide-react'
+import type { CellResult, RegionResponse, VariableDescriptor, VariableId } from '@/lib/api/v2'
+import { predict } from '@/lib/analysis/projection'
 import { VARIABLES } from '@/lib/variables/catalog'
+import { Term } from '@/components/term'
 import { SeriesChart } from '@/components/series-chart'
 import { VerdictBadge } from '@/components/verdict-badge'
-import { divergingFill, divergingLegend, sequentialFill, sequentialLegend, type LegendBin } from '@/lib/ui/color-scale'
+import { divergingFill, divergingLegend, projectionFill, projectionLegend, sequentialFill, sequentialLegend, type LegendBin } from '@/lib/ui/color-scale'
 import { digitsForUnit, formatNumber, formatPValue, formatSigned, unitEn } from '@/lib/ui/format'
 
 export type LayerKind = 'anomaly' | 'trend' | 'mean'
@@ -20,8 +22,8 @@ const KINDS: Array<{ id: LayerKind; label: string; hint: string }> = [
 ]
 
 /** Trend coloring is not allowed for variables without trend claims (precipitation): fall back to the anomaly layer. */
-export function effectiveKind(kind: LayerKind, data?: RegionResponse) {
-  return kind === 'trend' && data?.variable.trendPolicy !== 'allowed' ? 'anomaly' : kind
+export function effectiveKind(kind: LayerKind, trendPolicy?: VariableDescriptor['trendPolicy']) {
+  return kind === 'trend' && trendPolicy !== 'allowed' ? 'anomaly' : kind
 }
 
 function layerSpec(data: RegionResponse, kind: LayerKind) {
@@ -32,14 +34,22 @@ function layerSpec(data: RegionResponse, kind: LayerKind) {
 }
 
 const roleOf = (data: RegionResponse) => VARIABLES.find((variable) => variable.id === data.variable.id)?.colorRole ?? 'temperature'
+const decimalsOf = (data: RegionResponse) => VARIABLES.find((variable) => variable.id === data.variable.id)?.decimals ?? 2
+
+/** True when the response carries a validated projection that may be drawn (status 'ok' and a color domain). */
+export const canProject = (data?: RegionResponse) => data?.projection?.status === 'ok' && data.projection.domain !== null
 
 // Cells inside the 2D map SVG (the caller clips them to the selected boundary). Native squares, no smoothing.
-export function MapCells({ data, kind, project }: { data: RegionResponse; kind: LayerKind; project: (lon: number, lat: number) => [number, number] }) {
+// With `projectionYear`, each cell shows its own OLS line evaluated at that year (light = lower, dark = higher).
+export function MapCells({ data, kind, project, projectionYear = null }: { data: RegionResponse; kind: LayerKind; project: (lon: number, lat: number) => [number, number]; projectionYear?: number | null }) {
+  if (projectionYear !== null && canProject(data)) return <ProjectionCells data={data} year={projectionYear} project={project} />
   const spec = layerSpec(data, kind)
   const role = roleOf(data)
   const digits = digitsForUnit(spec.unit)
+  // Significant cells last, so their thicker edge is not half-covered by a neighbour drawn after them.
+  const ordered = kind === 'trend' ? [...data.cells].sort((a, b) => Number(a.significantField) - Number(b.significantField)) : data.cells
   return <g className="map-cells">
-    {data.cells.map((cell) => {
+    {ordered.map((cell) => {
       const value = spec.value(cell)
       const [x0, y0] = project(cell.bounds.west, cell.bounds.north)
       const [x1, y1] = project(cell.bounds.east, cell.bounds.south)
@@ -60,64 +70,137 @@ export function MapCells({ data, kind, project }: { data: RegionResponse; kind: 
   </g>
 }
 
-function Legend({ bins, unit, digits, diverging }: { bins: LegendBin[]; unit: string; digits: number; diverging: boolean }) {
-  const first = bins[0]
-  const last = bins[bins.length - 1]
-  return <div className="layer-legend">
-    <div className="legend-scale" aria-hidden="true">{bins.map((bin, index) => <span key={index} style={{ background: bin.fill }} />)}</div>
-    <div className="legend-labels"><span>{diverging ? formatSigned(first.from, digits) : formatNumber(first.from, digits)}</span>{diverging && <span>0</span>}<span>{diverging ? formatSigned(last.to, digits) : formatNumber(last.to, digits)}</span></div>
-    <span className="legend-unit">{unit}{diverging ? ' • colors saturate at the 95th percentile' : ''}</span>
+function ProjectionCells({ data, year, project }: { data: RegionResponse; year: number; project: (lon: number, lat: number) => [number, number] }) {
+  const summary = data.projection!
+  const domain = summary.domain!
+  const role = roleOf(data)
+  const digits = decimalsOf(data)
+  const unit = unitEn(data.variable.unit)
+  const lastYear = summary.fitYears[1]
+  const phase = year > lastYear ? `${year}, extrapolated ${year - lastYear} yr past the data` : `${year}, fitted line`
+  return <g className="map-cells">
+    {data.cells.map((cell) => {
+      const [x0, y0] = project(cell.bounds.west, cell.bounds.north)
+      const [x1, y1] = project(cell.bounds.east, cell.bounds.south)
+      const at = cell.fit ? predict(cell.fit, year, summary.rule.floor) : null
+      const change = cell.fit && at ? at.value - predict(cell.fit, lastYear, summary.rule.floor).value : null
+      const details = [
+        `${formatNumber(cell.lat, 1)}°, ${formatNumber(cell.lon, 3)}°`,
+        at ? `${phase}: ${formatNumber(at.value, digits)} ${unit} (95% prediction interval ${formatNumber(at.low, digits)} to ${formatNumber(at.high, digits)})` : 'no line: too few complete years',
+        change !== null && year !== lastYear ? `${formatSigned(change, digits)} ${unit} vs the line in ${lastYear}` : null,
+        `${Math.round(cell.coverage * 100)}% inside`,
+      ].filter(Boolean).join(' • ')
+      return <rect key={cell.id} x={Math.min(x0, x1)} y={Math.min(y0, y1)} width={Math.abs(x1 - x0)} height={Math.abs(y1 - y0)} className={`map-cell ${at ? '' : 'is-empty'}`} style={{ fill: at ? projectionFill(at.value, domain.min, domain.max, role) : 'none' }}>
+        <title>{details}</title>
+      </rect>
+    })}
+  </g>
+}
+
+type LegendSpec = { title: string; bins: LegendBin[]; unit: string; digits: number; diverging: boolean; continuous: boolean; note: string }
+
+function legendSpec(data: RegionResponse | undefined, kind: LayerKind, projectionYear: number | null): LegendSpec | null {
+  if (!data) return null
+  const role = roleOf(data)
+  if (projectionYear !== null && canProject(data)) {
+    const { domain, fitYears } = data.projection!
+    return { title: `Line value · ${projectionYear}`, bins: projectionLegend(domain!.min, domain!.max, role), unit: unitEn(data.variable.unit), digits: decimalsOf(data), diverging: false, continuous: true, note: projectionYear > fitYears[1] ? 'Extrapolated' : 'Fitted line' }
+  }
+  const shown = effectiveKind(kind, data.variable.trendPolicy)
+  const spec = layerSpec(data, shown)
+  if (!spec.domain) return null
+  const bins = spec.diverging ? divergingLegend(spec.domain.symmetricMaxAbs, role) : sequentialLegend(spec.domain.min, spec.domain.max, role)
+  return { title: KINDS.find((option) => option.id === shown)?.label ?? '', bins, unit: spec.unit, digits: digitsForUnit(spec.unit), diverging: spec.diverging, continuous: false, note: spec.diverging ? 'Saturates at the 95th percentile' : 'Mean of the period' }
+}
+
+// Beside the 2D map: the scale of whatever the cells show right now, highest value on top.
+export function MapLegend({ data, kind, projectionYear }: { data?: RegionResponse; kind: LayerKind; projectionYear: number | null }) {
+  const spec = legendSpec(data, kind, projectionYear)
+  if (!spec) return <aside className="map-legend is-empty" aria-label="Map color scale"><span className="map-legend-title">Scale</span><div className="map-legend-bar" /><span className="map-legend-note">Appears after Analyze</span></aside>
+  const top = spec.bins[spec.bins.length - 1].to
+  const bottom = spec.bins[0].from
+  const label = (value: number) => (spec.diverging ? formatSigned(value, spec.digits) : formatNumber(value, spec.digits))
+  return <aside className="map-legend" aria-label={`Map color scale: ${spec.title}, from ${label(bottom)} to ${label(top)} ${spec.unit}`}>
+    <span className="map-legend-title">{spec.title}</span>
+    <div className="map-legend-scale">
+      {spec.continuous
+        ? <div className="map-legend-bar" aria-hidden="true" style={{ background: `linear-gradient(to top, ${spec.bins[0].fill}, ${spec.bins[spec.bins.length - 1].fill})` }} />
+        : <div className="map-legend-bar" aria-hidden="true">{[...spec.bins].reverse().map((bin, index) => <span key={index} style={{ background: bin.fill }} />)}</div>}
+      <div className="map-legend-ticks" aria-hidden="true"><span>{label(top)}</span>{spec.diverging ? <span>0</span> : spec.continuous && <span>{label((top + bottom) / 2)}</span>}<span>{label(bottom)}</span></div>
+    </div>
+    <span className="map-legend-unit">{spec.unit}</span>
+    <span className="map-legend-note">{spec.diverging ? spec.note : <>Dark = higher<br />Light = lower</>}</span>
+  </aside>
+}
+
+// Step 1: how the 2D map colors the step 1 variable. The grid itself is requested by Analyze.
+export function MapLayerControls({ variable, kind, onKind }: { variable: VariableId; kind: LayerKind; onKind: (kind: LayerKind) => void }) {
+  const descriptor = MAP_VARIABLES.find((item) => item.id === variable)
+  const trendAllowed = descriptor?.trendPolicy === 'allowed'
+  const shownKind = effectiveKind(kind, descriptor?.trendPolicy)
+
+  return <div className="field-group layer-field">
+    <span className="field-label"><Layers size={16} /> DATA LAYER</span>
+    <div className="layer-controls">
+      <div className="segmented" role="group" aria-label="Map layer">
+        {KINDS.map((option) => <button key={option.id} type="button" title={option.hint} aria-pressed={shownKind === option.id} disabled={option.id === 'trend' && !trendAllowed} onClick={() => onKind(option.id)}>{option.label}</button>)}
+      </div>
+    </div>
+    <p className="field-hint">{descriptor ? <>Colors the map with <strong>{descriptor.label.en}</strong> for the selected country or state after Analyze.</> : 'This variable has no map layer.'}</p>
+    {descriptor && !trendAllowed && <p className="field-hint">Precipitation has no trend layer: its trend sign depends on the start year, so the map shows anomalies or averages only.</p>}
   </div>
 }
 
-// Controls, legend and regional summary under the 2D map.
-export function MapLayerPanel({ variable, onVariable, kind, onKind, active, onToggle, data, isLoading, error, areaName, canRequest }: {
+// Under the 2D map: request status, legend and regional summary for the layer chosen in step 1.
+export type GridEstimate = { cells: number; tiles: number; seconds: number }
+
+/** "≈ 32 cells in 2 NASA POWER blocks, about 5 s the first time" (blocks stay cached for 24 h). */
+export const estimateText = (estimate: GridEstimate) => `≈ ${estimate.cells.toLocaleString('en-US')} cells in ${estimate.tiles} NASA POWER block${estimate.tiles === 1 ? '' : 's'}, about ${estimate.seconds} s the first time`
+
+export function MapLayerResult({ variable, kind, active, data, isLoading, error, areaName, canRequest, estimate, tooLarge, maxCells, elapsed, cancelled, onCancel }: {
   variable: VariableId
-  onVariable: (id: VariableId) => void
   kind: LayerKind
-  onKind: (kind: LayerKind) => void
   active: boolean
-  onToggle: () => void
   data?: RegionResponse
   isLoading: boolean
   error?: Error
   areaName?: string
   canRequest: boolean
+  estimate: GridEstimate | null
+  tooLarge: boolean
+  maxCells: number
+  elapsed: number
+  cancelled: boolean
+  onCancel: () => void
 }) {
   const descriptor = MAP_VARIABLES.find((item) => item.id === variable)
-  const trendAllowed = descriptor?.trendPolicy === 'allowed'
-  const shownKind = data ? effectiveKind(kind, data) : kind
+  const shownKind = effectiveKind(kind, data?.variable.trendPolicy)
   const spec = data ? layerSpec(data, shownKind) : null
-  const digits = spec ? digitsForUnit(spec.unit) : 2
-  const role = data ? roleOf(data) : 'temperature'
   const regional = data?.regional
   const regionalLine = regional ? (regional.trend.display.method === 'sen-mann-kendall' ? regional.trend.lines.sen : regional.trend.lines.ols) : null
   const regionalDigits = regional ? digitsForUnit(regional.trend.display.unit) : 2
+  const kindLabel = KINDS.find((option) => option.id === shownKind)?.label.toLowerCase()
 
   return <div className="layer-panel">
-    <div className="field-label"><Layers size={16} /> DATA LAYER</div>
-    <div className="layer-controls">
-      <div className="select-wrap">
-        <select aria-label="Map variable" value={variable} onChange={(event) => onVariable(event.target.value as VariableId)}>
-          {MAP_VARIABLES.map((item) => <option key={item.id} value={item.id}>{item.label.en}</option>)}
-        </select>
-        <ChevronDown size={16} aria-hidden="true" />
-      </div>
-      <div className="segmented" role="group" aria-label="Map layer">
-        {KINDS.map((option) => <button key={option.id} type="button" title={option.hint} aria-pressed={kind === option.id} disabled={option.id === 'trend' && !trendAllowed} onClick={() => onKind(option.id)}>{option.label}</button>)}
-      </div>
-      <button className="export-button" type="button" disabled={!canRequest} onClick={onToggle}>{active ? <><EyeOff size={16} /> Hide layer</> : <><Eye size={16} /> Show layer</>}</button>
-    </div>
-    {!trendAllowed && <p className="field-hint">Precipitation has no trend layer: its trend sign depends on the start year, so the map shows anomalies or averages only.</p>}
-    {!canRequest && <p className="field-hint">Select a country or state to load its grid.</p>}
+    <div className="field-label"><Layers size={16} /> DATA LAYER{descriptor && <span className="layer-current">{descriptor.label.en} • {kindLabel}</span>}</div>
+    {!descriptor ? <p className="field-hint">This variable has no map layer.</p>
+      : !canRequest ? <p className="field-hint">Select a country or state to load its grid.</p>
+      : tooLarge && estimate ? <p className="layer-status is-limit" role="status">{areaName ?? 'This area'} covers {estimateText(estimate)}; the map draws up to {maxCells.toLocaleString('en-US')} cells. Choose a state on the globe or in step 1 to see its grid. The point analysis still runs.</p>
+      : cancelled ? <p className="field-hint">Grid request cancelled. Press <strong>Analyze region</strong> again to retry; blocks that finished downloading stay cached.</p>
+      : !active ? <p className="field-hint">Press <strong>Analyze region</strong> in step 1 to color {areaName ?? 'the area'} with {descriptor.label.en}{estimate ? ` (${estimateText(estimate)})` : ''}.</p>
+      : null}
 
-    {active && (isLoading ? <p className="layer-status" role="status"><LoaderCircle className="loading-icon" size={16} /> Loading the NASA POWER grid for {areaName ?? 'this area'}… A state takes a few seconds; a large country can take over a minute the first time.</p>
+    {active && canRequest && !tooLarge && !cancelled && (isLoading ? <div className="layer-status layer-progress" role="status">
+        <LoaderCircle className="loading-icon" size={16} />
+        <span>Loading the NASA POWER grid for {areaName ?? 'this area'}… <strong>{elapsed} s</strong>{estimate ? <> of about {estimate.seconds} s ({estimate.cells.toLocaleString('en-US')} cells, {estimate.tiles} block{estimate.tiles === 1 ? '' : 's'})</> : null}</span>
+        <button className="retry-button export-button" type="button" onClick={onCancel}>Cancel</button>
+      </div>
       : error ? <p className="layer-status is-error" role="alert">{error.message}</p>
       : data && spec && spec.domain ? <>
-        <Legend bins={spec.diverging ? divergingLegend(spec.domain.symmetricMaxAbs, role) : sequentialLegend(spec.domain.min, spec.domain.max, role)} unit={spec.unit} digits={digits} diverging={spec.diverging} />
+        {/* The color scale sits beside the map (MapLegend). */}
         <p className="layer-summary">
           {data.grid.cellCount} native cells of 0.5° × 0.625° clipped to the boundary
-          {shownKind === 'trend' && <> • <span className="legend-swatch-outline" aria-hidden="true" /> {data.summary.significantField} with a significant trend (field FDR q &lt; 0.10)</>}
+          {shownKind === 'trend' && <> • <span className="legend-swatch-outline" aria-hidden="true" /> {data.summary.significantField} with a significant trend (<Term name="fieldFdr">field FDR</Term> q &lt; 0.10)</>}
           {shownKind === 'anomaly' && data.cells[0]?.recentYears && <> • {data.cells[0].recentYears[0]}–{data.cells[0].recentYears[1]} vs 1991–2020</>}
         </p>
         {regional && <div className="layer-regional">

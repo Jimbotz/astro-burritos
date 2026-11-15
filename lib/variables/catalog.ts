@@ -20,7 +20,7 @@ export type PowerDailyParameter = 'T2M_MAX' | 'T2M_MIN'
 export type AggregationRule =
   | 'day-weighted-mean'      // monthly means weighted by calendar days
   | 'sum'                    // monthly mm/day × calendar days, summed over the year
-  | 'seasonal-sum-may-oct'   // same as sum, May–October only
+  | 'wet-season-sum'         // same as sum, over the cell's own wet season (its 6 rainiest months of 1991–2020)
   | 'annual-max'             // maximum of the 12 monthly maxima (= hottest day of the year)
   | 'annual-min'             // minimum of the 12 monthly minima (= coldest night of the year)
   | 'daily-mean'             // mean of every daily value of the year
@@ -38,11 +38,22 @@ export type TrendPolicy = 'allowed' | 'show-without-claim'
 export type VariableGroup = 'temperature' | 'precipitation' | 'humidity' | 'soil'
 
 export type SeasonId = 'dry' | 'wet'
-/** Seasons of central Mexico. The dry season crosses the year: Nov–Dec of year − 1 plus Jan–Apr of the labelled year. */
-export const SEASONS: Record<SeasonId, { label: { es: string; en: string }; months: number[]; crossesYear: boolean }> = {
-  dry: { label: { es: 'Temporada seca (nov–abr)', en: 'Dry season (Nov–Apr)' }, months: [11, 12, 1, 2, 3, 4], crossesYear: true },
-  wet: { label: { es: 'Temporada de lluvias (may–oct)', en: 'Wet season (May–Oct)' }, months: [5, 6, 7, 8, 9, 10], crossesYear: false },
-}
+/**
+ * Seasons are not fixed: each cell gets its own (cellSeasons in lib/analysis/annual-rules.ts). The wet season is the 6
+ * consecutive months with the most rain in the cell's 1991–2020 climatology and the dry season the other 6; where those
+ * 6 months hold less than 60% of the annual rain, the cell has no seasonal sub-series. In central Mexico this gives
+ * May–Oct and Nov–Apr. A season that crosses the year is labelled by the year in which it ends.
+ */
+export const SEASON_RULE = {
+  method: 'wettest-6-months',
+  basePeriod: '1991-2020',
+  minWetShare: 0.6,
+  minAnnualRainMm: 100,
+  description: {
+    es: 'Temporada de lluvias = los 6 meses consecutivos más lluviosos de 1991–2020 en cada celda; temporada seca = los otros 6. Sin temporadas donde esos 6 meses reúnen menos de 60 % de la lluvia anual o donde llueve menos de 100 mm al año.',
+    en: 'Wet season = the 6 consecutive rainiest months of 1991–2020 at each cell; dry season = the other 6. No seasons where those 6 months hold less than 60% of the annual rain, or where less than 100 mm falls in a year.',
+  },
+} as const
 
 /**
  * Per-variable processing profile. The backend applies it automatically; the interface reads it to label
@@ -70,6 +81,32 @@ export type ProcessingProfile = {
   expectedValue: number | null
   /** Minimum block length for the bootstrap (longer for variables with multi-year memory). */
   minBlockLength: number
+  rationale: { es: string; en: string }
+  /** Exploratory linear extrapolation on the map (lib/analysis/projection.ts); null when the variable is never projected. */
+  projection: ProjectionRule | null
+}
+
+/**
+ * Rules of the exploratory projection for one variable (docs/roadmap/data-strategy.md, “Linear regression and future
+ * values”). The line is validated on the last `holdoutYears` of the window against the training mean; a variable whose
+ * line does not beat the mean is blocked for that request.
+ */
+export type ProjectionRule = {
+  method: 'ols'
+  /** Length of each held-out validation window. */
+  holdoutYears: number
+  /** Number of rolling-origin windows at the end of the period (2 → e.g. 2015–2019 and 2020–2024), errors pooled. */
+  holdoutWindows: number
+  /** How far past the last data year the slider may go. */
+  horizonYears: number
+  /** Complete years needed to fit the validation line (the published line needs minFitYears + holdoutYears). */
+  minFitYears: number
+  /** Expected minimum share of held-out years inside the 95% prediction interval; below it the projection carries an undercoverage warning. */
+  minCoverage: number
+  /** Minimum skill (1 − RMSE line / RMSE mean on the held-out regional years); below it the projection is blocked. */
+  minSkill: number
+  /** Physical lower bound of the annual value (rain cannot be negative); null when unbounded. */
+  floor: number | null
   rationale: { es: string; en: string }
 }
 
@@ -99,7 +136,7 @@ const POWER = { provider: 'NASA POWER', product: 'MERRA-2' } as const
 const AREA_MEAN = { es: 'Promedio regional ponderado por área', en: 'Area-weighted regional mean' }
 const TEMPERATURE_BOUNDS = { min: -90, max: 70 }
 
-const PROFILES: Record<VariableId, ProcessingProfile> = {
+const PROFILES: Record<VariableId, Omit<ProcessingProfile, 'projection'>> = {
   T2M: { trendScale: 'absolute', displayUnit: '°C/década', primaryMethod: 'ols-hamed-rao', anomaly: { kind: 'absolute', unit: '°C' }, nativeBounds: TEMPERATURE_BOUNDS, seasons: ['dry', 'wet'], regionalAggregation: 'area-mean', regionalLabel: AREA_MEAN, relevanceThreshold: 0.1, expectedValue: null, minBlockLength: 2,
     rationale: { es: 'Variable continua y casi normal: OLS con p corregido por autocorrelación. Por temporada porque el calentamiento no es igual todo el año.', en: 'Continuous, near-normal variable: OLS with autocorrelation-corrected p. Seasonal split because warming differs through the year.' } },
   TX: { trendScale: 'absolute', displayUnit: '°C/década', primaryMethod: 'ols-hamed-rao', anomaly: { kind: 'absolute', unit: '°C' }, nativeBounds: TEMPERATURE_BOUNDS, seasons: ['dry', 'wet'], regionalAggregation: 'area-mean', regionalLabel: AREA_MEAN, relevanceThreshold: 0.1, expectedValue: null, minBlockLength: 2,
@@ -119,7 +156,7 @@ const PROFILES: Record<VariableId, ProcessingProfile> = {
   PRECTOTCORR: { trendScale: 'relative-percent', displayUnit: '%/década', primaryMethod: 'sen-mann-kendall', anomaly: { kind: 'percent', unit: '%' }, nativeBounds: { min: 0, max: 500 }, seasons: [], regionalAggregation: 'area-mean', regionalLabel: { es: 'Lámina media regional ponderada por área', en: 'Area-weighted regional mean depth' }, relevanceThreshold: 5, expectedValue: null, minBlockLength: 2,
     rationale: { es: 'Sesgada y no negativa: pendiente de Sen expresada en % de la media 1991–2020, comparable entre el valle seco y la sierra húmeda.', en: 'Skewed and non-negative: Sen slope as % of the 1991–2020 mean, comparable between dry valleys and wet mountains.' } },
   PREC_MJJASO: { trendScale: 'relative-percent', displayUnit: '%/década', primaryMethod: 'sen-mann-kendall', anomaly: { kind: 'percent', unit: '%' }, nativeBounds: { min: 0, max: 500 }, seasons: [], regionalAggregation: 'area-mean', regionalLabel: { es: 'Lámina media regional ponderada por área', en: 'Area-weighted regional mean depth' }, relevanceThreshold: 5, expectedValue: null, minBlockLength: 2,
-    rationale: { es: 'Igual que la lluvia anual, restringida a mayo–octubre.', en: 'Same as annual precipitation, restricted to May–October.' } },
+    rationale: { es: 'Igual que la lluvia anual, restringida a la temporada de lluvias de cada celda.', en: 'Same as annual precipitation, restricted to each cell’s wet season.' } },
   QV2M: { trendScale: 'absolute', displayUnit: 'g/kg/década', primaryMethod: 'ols-hamed-rao', anomaly: { kind: 'absolute', unit: 'g/kg' }, nativeBounds: { min: 0, max: 50 }, seasons: ['dry', 'wet'], regionalAggregation: 'area-mean', regionalLabel: AREA_MEAN, relevanceThreshold: 0.1, expectedValue: null, minBlockLength: 2,
     rationale: { es: 'Continua y positiva: OLS con p corregido; por temporada porque la humedad cambia mucho entre la temporada seca y la de lluvias.', en: 'Continuous and positive: OLS with corrected p; seasonal because humidity differs strongly between dry and wet seasons.' } },
   RH2M: { trendScale: 'percentage-points', displayUnit: 'pp/década', primaryMethod: 'ols-hamed-rao', anomaly: { kind: 'absolute', unit: 'pp' }, nativeBounds: { min: 0, max: 100 }, seasons: [], regionalAggregation: 'area-mean', regionalLabel: AREA_MEAN, relevanceThreshold: 1, expectedValue: null, minBlockLength: 2,
@@ -208,12 +245,12 @@ const BASE_VARIABLES: Array<Omit<VariableDescriptor, 'profile'>> = [
     },
   },
   {
-    id: 'PREC_MJJASO', label: { es: 'Lluvia de temporada (may–oct)', en: 'Wet-season rain (May–Oct)' }, shortLabel: { es: 'Lluvia may–oct', en: 'May–Oct rain' },
-    description: { es: 'Total de mayo a octubre; concentra cerca de 88% de la lluvia anual en Puebla y Tehuacán.', en: 'May–October total; about 88% of annual rain at Puebla and Tehuacán.' },
+    id: 'PREC_MJJASO', label: { es: 'Lluvia de la temporada de lluvias', en: 'Wet-season rain' }, shortLabel: { es: 'Lluvia de temporada', en: 'Wet-season rain' },
+    description: { es: 'Total de los 6 meses consecutivos más lluviosos de 1991–2020 en cada celda (may–oct en el centro de México, donde reúnen cerca de 88% de la lluvia anual).', en: 'Total of the 6 consecutive rainiest months of 1991–2020 at each cell (May–Oct in central Mexico, where they hold about 88% of the annual rain).' },
     group: 'precipitation', unit: 'mm', trendUnit: 'mm/década', decimals: 0, fitness: 'core', trendPolicy: 'show-without-claim',
-    source: { ...POWER, endpoint: 'monthly', parameters: ['PRECTOTCORR'] }, aggregation: 'seasonal-sum-may-oct',
+    source: { ...POWER, endpoint: 'monthly', parameters: ['PRECTOTCORR'] }, aggregation: 'wet-season-sum',
     availability: { point: true, region: true, monthlySeries: false, climatology: false }, colorRole: 'precipitation',
-    caveats: { es: ['Mismas limitaciones que la lluvia anual.'], en: ['Same limitations as annual precipitation.'] },
+    caveats: { es: ['Mismas limitaciones que la lluvia anual.', 'Sin valor en celdas donde la lluvia no tiene una temporada clara. El id conserva MJJASO por compatibilidad de la API.'], en: ['Same limitations as annual precipitation.', 'No value in cells where rain has no clear season. The id keeps MJJASO for API compatibility.'] },
   },
   {
     id: 'QV2M', label: { es: 'Humedad específica (2 m)', en: 'Specific humidity (2 m)' }, shortLabel: { es: 'Humedad esp.', en: 'Spec. humidity' },
@@ -241,7 +278,26 @@ const BASE_VARIABLES: Array<Omit<VariableDescriptor, 'profile'>> = [
   },
 ]
 
-export const VARIABLES: VariableDescriptor[] = BASE_VARIABLES.map((variable) => ({ ...variable, profile: PROFILES[variable.id] }))
+/**
+ * Projection rules for the four step 1 variables. Same validation for all (OLS line, last 5 years held out, horizon
+ * 10 years past the data), with each variable's own physical floor and rationale. Every other variable is never projected.
+ */
+const PROJECTION_BASE = { method: 'ols', holdoutYears: 5, holdoutWindows: 2, horizonYears: 10, minFitYears: 10, minCoverage: 0.8, minSkill: 0.1 } as const
+const PROJECTION: Partial<Record<VariableId, ProjectionRule>> = {
+  T2M: { ...PROJECTION_BASE, floor: null,
+    rationale: { es: 'Señal continua y casi lineal: la recta OLS se valida con los últimos 5 años antes de extenderla.', en: 'Continuous, near-linear signal: the OLS line is validated on the last 5 years before it is extended.' } },
+  TXx: { ...PROJECTION_BASE, floor: null,
+    rationale: { es: 'Un solo día extremo por año: más ruidoso, así que el intervalo de predicción es ancho y la recta igual debe superar al promedio.', en: 'A single extreme day per year: noisier, so the prediction interval is wide and the line must still beat the average.' } },
+  TNn: { ...PROJECTION_BASE, floor: null,
+    rationale: { es: 'Una sola noche extrema por año: más ruidosa, así que el intervalo de predicción es ancho y la recta igual debe superar al promedio.', en: 'A single extreme night per year: noisier, so the prediction interval is wide and the line must still beat the average.' } },
+  PRECTOTCORR: { ...PROJECTION_BASE, floor: 0,
+    rationale: { es: 'Sesgada y muy variable, y su signo depende del año de inicio: misma validación, se bloquea si no supera al promedio y nunca baja de 0 mm.', en: 'Skewed and highly variable, with a start-year-dependent sign: same validation, blocked if it does not beat the average, never below 0 mm.' } },
+}
+
+export const VARIABLES: VariableDescriptor[] = BASE_VARIABLES.map((variable) => ({ ...variable, profile: { ...PROFILES[variable.id], projection: PROJECTION[variable.id] ?? null } }))
+
+/** Variables whose map layer offers the exploratory projection. */
+export const PROJECTION_VARIABLE_IDS = VARIABLES.filter((variable) => variable.profile.projection).map((variable) => variable.id)
 
 /** Variables evaluated in the audit and deliberately not exposed, with the reason. */
 export const EXCLUDED_VARIABLES: Array<{ id: string; reason: { es: string; en: string } }> = [

@@ -100,7 +100,7 @@ If a later research phase needs a projection, it must be a separate artifact:
 5. Store the result as `RegressionProjection` with `interpretation: exploratory-extrapolation`, not as a climate forecast. Rainfall, vegetation indices, water level and satellite retrievals may require different transformations or models; “one linear regression for every field” is not scientifically defensible.
 6. Only after independent review expose the projection as a clearly separated optional layer in the UI.
 
-No future values or projection layer are being fabricated in the current branch.
+**Status (2026-11-14):** an exploratory projection now exists as an optional control in step 3 of the map, only for T2M, TXx, TNn and PRECTOTCORR (`lib/analysis/projection.ts`, `POST /api/region` → `projection`). It covers points 1–5 partially: annual values (no seasonal cycle), one OLS line per cell, two rolling-origin 5-year holdout windows scored on the area-weighted regional series against the training mean (pooled MAE, RMSE, skill, bias, 95% interval coverage, plus each window's skill), prediction intervals widened for AR(1) residuals, `blocked-by-quality` when the pooled skill is below 10% or the most recent window is worse than the mean, and `interpretation: exploratory-extrapolation`. Measured on 2026-11-15, no variable beats the mean by 10% in 2015–2019, so the projection shows only where the recent warming dominates (T2M in Puebla and Oaxaca). Still missing: non-linearity and heteroscedasticity diagnostics and the independent review of point 6. The map layer stays off until the user turns it on and is labeled “not a forecast”.
 
 ## Action plan and gates
 

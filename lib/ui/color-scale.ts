@@ -44,6 +44,31 @@ export function divergingLegend(maxAbs: number, role: ColorRole): LegendBin[] {
   return [...negative, ...positive]
 }
 
+/**
+ * Projection scale (step 3 slider): light = lowest value, dark = highest, in the variable's own hue. The fill is
+ * continuous (tint 8% → 80%) so every slider year nudges the color; the domain is fixed over the whole slider range by
+ * the API. PROJECTION_STEPS only labels the legend.
+ */
+export const PROJECTION_TINT = { min: 8, max: 80 } as const
+export const PROJECTION_STEPS = [8, 17, 26, 35, 44, 53, 62, 71, 80] as const
+const projectionHue = (role: ColorRole) => (role === 'temperature' ? WARM : COOL)
+
+/** Tint percent for a value: 8 at the domain minimum, 80 at the maximum, linear in between (clamped). */
+export function projectionTint(value: number, min: number, max: number) {
+  const span = max - min
+  const fraction = span > 0 ? Math.min(1, Math.max(0, (value - min) / span)) : 0
+  return Math.round((PROJECTION_TINT.min + fraction * (PROJECTION_TINT.max - PROJECTION_TINT.min)) * 10) / 10
+}
+
+export function projectionFill(value: number, min: number, max: number, role: ColorRole) {
+  return tint(projectionHue(role), projectionTint(value, min, max))
+}
+
+export function projectionLegend(min: number, max: number, role: ColorRole): LegendBin[] {
+  const width = (max - min) / PROJECTION_STEPS.length
+  return PROJECTION_STEPS.map((percent, index) => ({ fill: tint(projectionHue(role), percent), from: min + index * width, to: min + (index + 1) * width }))
+}
+
 export function sequentialLegend(min: number, max: number, role: ColorRole): LegendBin[] {
   const width = (max - min) / TINT_STEPS.length
   return TINT_STEPS.map((percent, index) => ({ fill: tint(role === 'temperature' ? WARM : COOL, percent), from: min + index * width, to: min + (index + 1) * width }))

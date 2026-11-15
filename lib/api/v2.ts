@@ -4,16 +4,17 @@
  * Full documentation and examples: docs/backend/api-v2.md and docs/backend/samples/.
  */
 import type { ApiWarning, RobustTrend, TrendDisplay, Verdict } from '../analysis/robust-assessment'
-import type { AnnualPoint, ClimatologyPoint, MonthlyPoint } from '../analysis/annual-rules'
+import type { AnnualPoint, CellSeasons, ClimatologyPoint, MonthlyPoint, SeasonDefinition } from '../analysis/annual-rules'
 import type { CellResult } from '../analysis/region'
+import type { LineFit, ProjectedValue, ProjectionSummary } from '../analysis/projection'
 import type { PowerSourceInfo } from '../nasa/power'
-import type { ProcessingProfile, SeasonId, VariableDescriptor, VariableId } from '../variables/catalog'
+import type { ProcessingProfile, ProjectionRule, SEASON_RULE, SeasonId, VariableDescriptor, VariableId } from '../variables/catalog'
 
 export const SCHEMA_VERSION = '2.0' as const
 /** Default comparison window: common window with IMERG (2025 is incomplete in IMERG Final). */
 export const DEFAULT_WINDOW = { startYear: 2001, endYear: 2024 } as const
 
-export type { ApiWarning, RobustTrend, TrendDisplay, Verdict, AnnualPoint, ClimatologyPoint, MonthlyPoint, CellResult, PowerSourceInfo, ProcessingProfile, SeasonId, VariableDescriptor, VariableId }
+export type { ApiWarning, RobustTrend, TrendDisplay, Verdict, AnnualPoint, ClimatologyPoint, MonthlyPoint, CellResult, PowerSourceInfo, ProcessingProfile, SeasonId, VariableDescriptor, VariableId, LineFit, ProjectedValue, ProjectionSummary, ProjectionRule, CellSeasons, SeasonDefinition }
 
 export type CellSupport = {
   type: 'grid-cell'
@@ -59,6 +60,8 @@ export type PointResponse = {
   window: { startYear: number; endYear: number; mode: 'fixed'; sensitivity: { startYear: number; endYear: number } }
   family: { method: 'benjamini-hochberg'; alpha: 0.05; pValue: 'hamed-rao'; members: VariableId[]; note: string }
   seasonalFamily: { method: 'benjamini-hochberg'; alpha: 0.05; members: string[]; note: string }
+  /** This cell's wet and dry seasons (its 6 rainiest months of 1991–2020 and the other 6); null where rain has no clear season. */
+  seasonDefinition: CellSeasons | null
   sources: PowerSourceInfo[]
   variables: VariableResult[]
 }
@@ -77,6 +80,11 @@ export type RegionResponse = {
   /** Area-weighted series of the whole region (weights = coverage × cos(lat)) with the full assessment. */
   regional: { baseline: number | null; annual: AnnualPoint[]; trend: RobustTrend; warnings: ApiWarning[] }
   qa: { outOfBoundsRecords: number }
+  /**
+   * Exploratory linear extrapolation (null for variables without a projection rule). Each cell carries its line in
+   * cells[].fit; evaluate it with predict() from lib/analysis/projection.ts and draw it only when status is 'ok'.
+   */
+  projection: ProjectionSummary | null
   sources: PowerSourceInfo[]
   notes: string[]
 }
@@ -86,7 +94,8 @@ export type VariablesResponse = {
   variables: VariableDescriptor[]
   excluded: Array<{ id: string; reason: { es: string; en: string } }>
   defaults: { window: typeof DEFAULT_WINDOW }
-  seasons: Record<SeasonId, { label: { es: string; en: string }; months: number[]; crossesYear: boolean }>
+  /** How each cell's seasons are derived (they are no longer fixed months). */
+  seasons: typeof SEASON_RULE
   rules: Record<string, string>
   verdicts: Record<Verdict, { es: string; en: string }>
 }
